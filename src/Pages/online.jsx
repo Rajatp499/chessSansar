@@ -5,9 +5,10 @@ import { Chessboard } from "react-chessboard";
 import { useTimer } from "react-timer-hook";
 import Clock from "../components/clock";
 
-export default function CustomizedBoard() {
+export default function Online() {
   const [game, setGame] = useState(new Chess());
   const [popUp, setPopUp] = useState(false);
+  const [popUp2, setPopUp2] = useState(false);
   const [moves, setMoves] = useState([]);
 
   const [selectedTime, setSelectedTime] = useState("50+2"); // in seconds
@@ -116,8 +117,9 @@ export default function CustomizedBoard() {
   return (
     <>
       <div className="p-4 flex justify-evenly h-screen">
-        <div className="flex h-fit p-2 ">
+        <div className="flex h-fit p-2">
           <Chessboard
+          style={{ filter: "blur(10px)" }}
             // id="standard"
             boardWidth={560}
             position={game.fen()}
@@ -185,7 +187,8 @@ export default function CustomizedBoard() {
       </div>
 
       <Popup open={popUp} closeOnDocumentClick={false}>
-        <div className="p-4 shadow-2xl bg-slate-900 rounded-xl h-[70vh] w-[40vw] flex flex-col justify-center items-center space-y-6">
+        <div className="backdrop-blur-sm bg-white/30 h-[100vh] w-[100vw] text-white flex justify-center items-center p-4 rounded-md">
+        <div className="p-4 shadow-2xl bg-slate-900 rounded-xl h-[70vh] w-[40vw] flex flex-col justify-center items-center space-y-6 ">
           <h2 className="text-xl text-white font-bold">Select Chess Timer</h2>
 
           <div className="w-full flex flex-col space-y-4">
@@ -245,10 +248,22 @@ export default function CustomizedBoard() {
             className="bg-blue-500 text-white px-6 py-2 rounded-lg mt-4"
             onClick={() => {
               setPopUp(false);
+              setPopUp2(true)
             }}
           >
             Confirm
           </button>
+        </div>
+        </div>
+      </Popup>
+
+      <Popup open={popUp2}
+       closeOnDocumentClick={false} >
+        <div className="backdrop-blur-sm bg-white/30 h-[100vh] w-[100vw] text-white flex justify-center items-center p-4 rounded-md"> 
+            <div className="bg-slate-900 p-4 rounded-md min-h-5">
+
+        Room ID: scnjncajncjnajcna
+            </div>
         </div>
       </Popup>
     </>

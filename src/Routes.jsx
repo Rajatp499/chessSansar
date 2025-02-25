@@ -3,6 +3,9 @@ import React from "react";
 import Home from "./Pages/home";
 import Engine from "./Pages/engine";
 import Puzzle from "./Pages/puzzle";
+import Online from "./Pages/online"
+import Signup from "./Pages/signUp";
+import Login from "./Pages/logIn"
 
 function Approuter() {
   return (
@@ -11,6 +14,11 @@ function Approuter() {
         <Route path="/" element={<Home />} />
         <Route path="/engine" element={<Engine />} />
         <Route path="/puzzle" element={<Puzzle />} />
+        <Route path="/online" element={<Online />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        
+
 
       </Routes>
     </Router>

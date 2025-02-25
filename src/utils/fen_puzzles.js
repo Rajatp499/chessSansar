@@ -11,18 +11,18 @@ const fen_puzzles = [
     },
     {
         id: 3,
-        fen: "6k1/1p1r1pp1/p1r3b1/3pPqB1/2pP4/Q1P4R/P3P2K/6R1 w - - 0 1",
-        solution: "Rc1+ Rxc1 Bxb2#",
+        fen: "5bk1/R4p1p/6p1/8/3p2K1/1Q4P1/1P3P1q/2r5 b - - 0 1",
+        solution: "Qh5+ Kf4 Qf5#",
     },
     {
         id: 4,
-        fen: "8/8/8/8/8/8/8/6k1 w - - 0 1",
-        solution: "g1 h1",
+        fen: "5bk1/6p1/5PQ1/pp4Pp/2p4P/P2r4/1PK5/8 w - - 0 1",
+        solution: "f7+ Kh8 Qxh5#",
     },
     {
         id: 5,
-        fen: "8/8/8/8/8/8/8/6k1 w - - 0 1",
-        solution: "g1 h1",
+        fen: "3rr2k/pp1b2b1/4q1pp/2Pp1p2/3B4/1P2QNP1/P6P/R4RK1 w - - 0 1",
+        solution: "Qxh6+ Kg8 Qxg7#",
     },
 ];
 export default fen_puzzles;
