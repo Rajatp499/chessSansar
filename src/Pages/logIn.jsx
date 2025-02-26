@@ -1,13 +1,19 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [loginData, setloginData] = useState({
-    username: "",
+    usernameBACKEND_API: "",
     password: "",
   });
 
+  const navigate = useNavigate();
+
   const [error, setError] = useState("");
+
+  const BACKEND_API = import.meta.env.VITE_BACKEND_CHESS_API;
+  console.log("Backend API:", BACKEND_API);
 
   // Handle Input Change
   const handleChange = (e) => {
@@ -18,13 +24,30 @@ const Login = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    fetch(BACKEND_API+"/auth/token/login/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(loginData),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        let token = data.auth_token;
+        localStorage.setItem("token", token);
+        console.log("User login token:", token);
+        navigate("/");
+      })
+      .catch((err) => {
+        console.error("Login Error:", err);
+      });
+
     // Basic Validation
-    if (!loginData.email || !loginData.username || !loginData.password) {
+    if (!loginData.username || !loginData.password) {
       setError("All fields are required.");
       return;
     }
 
-    console.log("Signup Data:", loginData);
     setError("");
   };
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { Link } from "react-router-dom";
 import pp from "../assets/profile.gif"
@@ -7,10 +7,31 @@ import pp from "../assets/profile.gif"
 
 const Home = () => {
   const [popUp, setPopUp] = useState(false);
+  const [user, setUser] = useState({name: "John Doe", profilePic: pp});
 
-  const user = {
-    name: "John Doe",
-    profilePic: pp, // Replace with actual user image URL
+  const BACKEND_API = import.meta.env.VITE_BACKEND_CHESS_API;
+  useEffect(() => {
+    fetch(BACKEND_API+"/auth/users/me/", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Token ${localStorage.getItem("token")}`,
+      }
+    })
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("User Data:", data);
+      if (data.username)
+        setUser((prev) => {
+          return {...prev,name: data.username}
+        });
+    });
+
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.reload();
   };
 
   return (
@@ -29,12 +50,29 @@ const Home = () => {
 
     {/* Login & Signup Buttons */}
     <div className="flex space-x-3">
-      <Link to='/login' className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition">
+      {localStorage.getItem("token") ? 
+      (
+        <>
+          <button onClick={handleLogout} className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition">
+              Logout
+          </button>
+        </>
+      ) : (
+        <>
+          <Link to='/login' className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition">
+            Login
+          </Link>
+          <Link to='/signup' className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition">
+            Signup
+          </Link>
+        </>
+      )}
+      {/* <Link to='/login' className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition">
         Login
       </Link>
       <Link to='/signup' className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition">
         Signup
-      </Link>
+      </Link> */}
     </div>
   </div>
 </div>
