@@ -1,14 +1,20 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
+import Popup from "reactjs-popup";
+
+
 const Signup = () => {
   const [userData, setUserData] = useState({
     email: "",
     username: "",
     password: "",
   });
+  const [popUp, setPopUp] = useState(false);
 
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
   const BACKEND_API = import.meta.env.VITE_BACKEND_CHESS_API
   // Handle Input Change
   const handleChange = (e) => {
@@ -32,9 +38,25 @@ const Signup = () => {
       },
       body: JSON.stringify(userData)
     })
-      .then((res) => res.json())
+      .then((res) => {
+        console.log("Signup Response status:", res.status);
+        if (res.status === 201) {
+          setMessage("Signup successful. Please check your email to activate your account.");
+          setPopUp(true);
+          return;
+        }
+
+        return res.json();
+      })
       .then((data) => {
-        console.log("data:", data);
+        for (let key in data) {
+          // console.log(key);
+          for (let val in data[key]) {
+            // console.log(data[key][val]);
+            setError((prev) => prev+"\n"+data[key][val]);
+          }
+        }
+        // console.log("data:", data);
       })
       .catch((err) => {
         console.error("Signup Error:", err);
@@ -105,6 +127,11 @@ const Signup = () => {
           Already have an account? <Link to="/login" className="text-blue-500">Login</Link>
         </p>
       </div>
+      <Popup open={popUp} closeOnDocumentClick onClose={() => setPopUp(false)}>
+        <div className="bg-slate-800 p-8  text-red-600 te rounded-lg shadow-lg w-96"> 
+          {message}
+        </div>
+        </Popup>
     </div>
   );
 };

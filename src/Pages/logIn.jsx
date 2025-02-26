@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [loginData, setloginData] = useState({
-    usernameBACKEND_API: "",
+    username: "",
     password: "",
   });
 

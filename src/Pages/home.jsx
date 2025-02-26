@@ -67,16 +67,9 @@ const Home = () => {
           </Link>
         </>
       )}
-      {/* <Link to='/login' className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition">
-        Login
-      </Link>
-      <Link to='/signup' className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition">
-        Signup
-      </Link> */}
     </div>
   </div>
 </div>
-
 
     {/* Main Content */}
     <div className="flex flex-col md:flex-row justify-center items-center md:space-x-8 mt-10">
