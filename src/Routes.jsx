@@ -5,7 +5,8 @@ import Engine from "./Pages/engine";
 import Puzzle from "./Pages/puzzle";
 import Online from "./Pages/online"
 import Signup from "./Pages/signUp";
-import Login from "./Pages/logIn"
+import Login from "./Pages/logIn";
+import Activate from "./Pages/activate";
 
 function Approuter() {
   return (
@@ -17,7 +18,7 @@ function Approuter() {
         <Route path="/online" element={<Online />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        
+        <Route path="/activate/:uid/:token" element={<Activate />} />
 
 
       </Routes>

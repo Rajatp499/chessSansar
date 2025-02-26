@@ -9,7 +9,7 @@ const Signup = () => {
   });
 
   const [error, setError] = useState("");
-
+  const BACKEND_API = import.meta.env.VITE_BACKEND_CHESS_API
   // Handle Input Change
   const handleChange = (e) => {
     setUserData({ ...userData, [e.target.name]: e.target.value });
@@ -24,6 +24,21 @@ const Signup = () => {
       setError("All fields are required.");
       return;
     }
+
+    fetch(BACKEND_API + "/auth/users/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData)
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("data:", data);
+      })
+      .catch((err) => {
+        console.error("Signup Error:", err);
+      });
 
     console.log("Signup Data:", userData);
     setError("");

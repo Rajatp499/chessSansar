@@ -23,8 +23,12 @@ const Login = () => {
   // Handle Form Submission
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    fetch(BACKEND_API+"/auth/token/login/", {
+    // Basic Validation
+    if (!loginData.username || !loginData.password) {
+      setError("All fields are required.");
+      return;
+    }
+    fetch(BACKEND_API + "/auth/token/login/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -41,12 +45,6 @@ const Login = () => {
       .catch((err) => {
         console.error("Login Error:", err);
       });
-
-    // Basic Validation
-    if (!loginData.username || !loginData.password) {
-      setError("All fields are required.");
-      return;
-    }
 
     setError("");
   };
