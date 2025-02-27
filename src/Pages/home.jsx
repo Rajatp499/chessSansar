@@ -2,13 +2,15 @@ import React, { useEffect, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { Link } from "react-router-dom";
 import pp from "../assets/profile.gif"
-// import Popup from "reactjs-popup";
-// import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { setUser } from "../Store/Slices/userSlice";
+
 
 const Home = () => {
-  const [popUp, setPopUp] = useState(false);
-  const [user, setUser] = useState({name: "John Doe", profilePic: pp});
+  const user = useSelector((state) => state.user);
 
+  const dispatch = useDispatch();
+  
   const BACKEND_API = import.meta.env.VITE_BACKEND_CHESS_API;
   useEffect(() => {
     fetch(BACKEND_API+"/auth/users/me/", {
@@ -22,9 +24,12 @@ const Home = () => {
     .then((data) => {
       console.log("User Data:", data);
       if (data.username)
-        setUser((prev) => {
-          return {...prev,name: data.username}
-        });
+      {
+        dispatch(setUser({name: data.username, profilepic: pp}));
+        // setUser((prev) => {
+          //   return {...prev,name: data.username}
+          // });
+        }
     });
 
   }, []);
@@ -44,7 +49,7 @@ const Home = () => {
   <div className="flex flex-col items-end space-y-2">
     {/* User Profile Section */}
     <div className="flex items-center space-x-3 bg-gray-200 px-4 py-2 rounded-lg shadow-md">
-      <img src={user.profilePic} alt="User" className="w-10 h-10 rounded-full" />
+      <img src={user.profilepic} alt="User" className="w-10 h-10 rounded-full" />
       <span className="text-lg font-medium">{user.name}</span>
     </div>
 
@@ -83,7 +88,7 @@ const Home = () => {
         <div className="text-center text-2xl mt-4">Play with Bot</div>
       </Link>
 
-      <Link to="/online" className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+      <Link to="/connect" className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200 cursor-pointer">
         <Chessboard
           boardWidth={300}
           position="start"
