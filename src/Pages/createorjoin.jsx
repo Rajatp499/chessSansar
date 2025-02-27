@@ -7,7 +7,7 @@ const createorjoin = () => {
     const handleCreateGame = () => {
         console.log("Create Game");
         const randomWord = Math.random().toString(36).substring(2, 18);
-        navigate(`/online/${randomWord}`);
+        navigate(`/create/${randomWord}`);
         console.log(randomWord);
     };
 

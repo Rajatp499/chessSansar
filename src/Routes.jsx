@@ -9,6 +9,7 @@ import Login from "./Pages/logIn";
 import Activate from "./Pages/activate";
 import Createorjoin from "./Pages/createorjoin";
 import JoinPage from "./Pages/join";
+import Create from "./Pages/create";
 
 function Approuter() {
   return (
@@ -23,9 +24,7 @@ function Approuter() {
         <Route path="/activate/:uid/:token" element={<Activate />} />
         <Route path="/connect" element={<Createorjoin />} />
         <Route path="/join" element={<JoinPage />} />
-        
-
-
+        <Route path="/create/:roomid" element={<Create />} />
       </Routes>
     </Router>
   );
