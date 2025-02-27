@@ -58,9 +58,10 @@ export default function CustomizedBoard() {
   useEffect(() => {
     setPopUp(true);
   }, []);
-
+  
   const drop = ( sourceSquare, targetSquare) => {
     try {
+      
       const move = game.move({
         from: sourceSquare,
         to: targetSquare,

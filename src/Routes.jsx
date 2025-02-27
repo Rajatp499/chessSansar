@@ -10,6 +10,8 @@ import Activate from "./Pages/activate";
 import Createorjoin from "./Pages/createorjoin";
 import JoinPage from "./Pages/join";
 import Create from "./Pages/create";
+// import Bot from "./Engine/bot";
+import Test from "./Pages/test";
 
 function Approuter() {
   return (
@@ -25,6 +27,7 @@ function Approuter() {
         <Route path="/connect" element={<Createorjoin />} />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/create/:roomid" element={<Create />} />
+        <Route path="/test" element={<Test />} />
       </Routes>
     </Router>
   );

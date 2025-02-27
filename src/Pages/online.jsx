@@ -31,72 +31,80 @@ export default function Online() {
     }
   }
 
+  const websocketopencallback = () => {
+    console.log("WebSocket connection established");
+    socket.current.send(JSON.stringify({ action: "join_game" }));
+  };
+
+  const websocketmessagecallback = (event) => {
+    const message = JSON.parse(event.data);
+    const info = message.message.info;
+
+    if (info === "connected") {
+      setUser(message.message.player.user);
+      userName  =  message.message.player.user;
+      console.log(message.message.player.user);
+    }
+
+    console.log("Received message:", message);
+
+    // only process messages that are for both players
+    const type = message.message.type;
+    if (type != "both") {
+      return;
+    }
+
+    if (info === "joined") {
+      updateUserState(
+        message.game.player1, message.game.player2, message.game.player1_color, message.game.player2_color
+      )
+      setPlayer1(message.game.player1);
+      setPlayer2(message.game.player2);
+
+      const current_turn = message.game.current_turn;
+      console.log("Turn:", current_turn);
+    }
+
+    if (info === "reconnected") {
+      updateUserState(
+        message.game.player1, message.game.player2, message.game.player1_color, message.game.player2_color
+      )
+      setPlayer1(message.game.player1);
+      setPlayer2(message.game.player2);
+
+      const current_turn = message.game.current_turn;
+      console.log("Turn:", current_turn);
+
+      setGame(new Chess(message.game.fen));
+    }
+
+    if (info === "moved") {
+      const current_turn = message.game.current_turn;
+      console.log("Turn:", current_turn);
+      if (message.message.user !== user) {
+        setGame(new Chess(message.game.fen));
+      }
+    }
+
+  };
+
+  const websocketclosecallback = () => {
+    console.log("WebSocket connection closed");
+  };
+
+  const websocketerrorcallback = () => {
+    console.error("WebSocket error:", error);
+  };
+
   useEffect(() => {
 
     const BACKEND_WS_API = import.meta.env.VITE_BACKEND_CHESS_WS_API;
     socket.current = new WebSocket(BACKEND_WS_API + "/chess/" + roomid + "/?token=" + localStorage.getItem("token"));
 
-    socket.current.onopen = () => {
-      console.log("WebSocket connection established");
-      socket.current.send(JSON.stringify({ action: "join_game" }));
-    };
-
-    socket.current.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      const info = message.message.info;
-
-      if (info === "connected") {
-        setUser(message.message.player.user);
-        userName  =  message.message.player.user;
-        console.log(message.message.player.user);
-      }
-
-      console.log("Received message:", message);
-
-      // only process messages that are for both players
-      const type = message.message.type;
-      if (type != "both") {
-        return;
-      }
-
-      if (info === "joined") {
-        updateUserState(
-          message.game.player1, message.game.player2, message.game.player1_color, message.game.player2_color
-        )
-        setPlayer1(message.game.player1);
-        setPlayer2(message.game.player2);
-
-        const current_turn = message.game.current_turn;
-        console.log("Turn:", current_turn);
-      }
-      if (info === "reconnected") {
-        updateUserState(
-          message.game.player1, message.game.player2, message.game.player1_color, message.game.player2_color
-        )
-        setPlayer1(message.game.player1);
-        setPlayer2(message.game.player2);
-
-        const current_turn = message.game.current_turn;
-        console.log("Turn:", current_turn);
-
-        setGame(new Chess(message.game.fen));
-      }
-      if (info === "moved") {
-        const current_turn = message.game.current_turn;
-        console.log("Turn:", current_turn);
-        if (message.message.user !== user) {
-          setGame(new Chess(message.game.fen));
-        }
-      }
-    };
-
-    socket.current.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-
-    socket.current.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
+    socket.current.onopen = websocketopencallback;
+    socket.current.onmessage = websocketmessagecallback;
+    socket.current.onclose = websocketclosecallback;
+    socket.current.onerror = websocketerrorcallback;
 
     console.log("useffect Socket:", socket);
   }, []);
@@ -109,6 +117,7 @@ export default function Online() {
       console.log("user color: ", userColor);
       if (game.turn() !== userColor) 
         return;
+      
       const move = game.move({
         from: sourceSquare,
         to: targetSquare,
