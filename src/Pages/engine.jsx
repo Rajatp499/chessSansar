@@ -1,257 +1,261 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import Engine from "../Engine/engine.js";
+import Move from "../components/move.jsx";
+import SelectAI from "../components/selectAi.jsx";
 import { Chess } from "chess.js";
-import Popup from "reactjs-popup";
 import { Chessboard } from "react-chessboard";
-import { useTimer } from "react-timer-hook";
-import Clock from "../components/clock";
 
-export default function CustomizedBoard() {
-  const [game, setGame] = useState(new Chess());
-  const [popUp, setPopUp] = useState(false);
-  const [moves, setMoves] = useState([]);
+import Timer from "../components/timer.jsx";
 
-  const [selectedTime, setSelectedTime] = useState("50+2"); // in seconds
 
-  const time_b = new Date();
-  const time_w = new Date();
+export const PlayerVsBot = () => {
+  let player_color = 'white';
+  const engine = useMemo(() => new Engine(), []);
+  const game = useMemo(() => new Chess(), []);
 
-  const [increment, setIncrement] = useState(0);
-  useEffect(() => {
-    const [base, inc] = selectedTime.split("+").map(Number);
-    setIncrement(inc);
+  const [loading, setLoading] = useState(true);
+  const [gamePosition, setGamePosition] = useState(game.fen());
+  const [botLevel, setBotLevel] = useState(2);
+  const [gameFormat, setGameFormat] = useState('rapid');
+  const [playerColor, setPlayerColor] = useState('white');
+  const [openSelectAI, setOpenSelectAI] = useState(true);
 
-    time_w.setSeconds(time_w.getSeconds() + base * 60);
-    time_b.setSeconds(time_b.getSeconds() + base * 60);
-
-    restart_b(time_b, false); // Restart Black's timer
-    restart_w(time_w, false); // Restart White's timer
-  }, [selectedTime]);
-
-  const {
-    seconds: seconds_b,
-    minutes: minutes_b,
-    isRunning: isRunning_b,
-    start: start_b,
-    pause: pause_b,
-    resume: resume_b,
-    restart: restart_b,
-  } = useTimer({
-    expiryTimestamp: time_b,
-    onExpire: () => alert("White Wins on Time"),
-    autoStart: false,
-  });
-
-  const {
-    seconds: seconds_w,
-    minutes: minutes_w,
-    isRunning: isRunning_w,
-    start: start_w,
-    pause: pause_w,
-    resume: resume_w,
-    restart: restart_w,
-  } = useTimer({
-    expiryTimestamp: time_w,
-    onExpire: () => alert("Black Wins on Time"),
-    autoStart: false,
-  });
-
-  useEffect(() => {
-    setPopUp(true);
-  }, []);
+  // timer ---------------------------------------
+  const increment = useRef(null);
+  const expiryTimestampUser = useRef(null);
+  const expiryTimestampBot = useRef(null);
   
-  const drop = ( sourceSquare, targetSquare) => {
+  // ai
+  const pauseRefUser = useRef(null);
+  const resumeRefUser = useRef(null);
+  const restartRefUser = useRef(null);
+  const startRefUser = useRef(null);
+  const incrementRefUser = useRef(null);
+
+  // player
+  const pauseRefBot = useRef(null);
+  const resumeRefBot = useRef(null);
+  const restartRefBot = useRef(null);
+  const startRefBot = useRef(null);
+  const incrementRefBot = useRef(null);
+
+  const handlePauseUser = (pause) => {
+    pauseRefUser.current = pause;
+  };
+
+  const handleResumeUser = (resume) => {
+    resumeRefUser.current = resume;
+  };
+
+  const handleRestartUser = (restart) => {
+    restartRefUser.current = restart;
+  };
+
+  const handleStartUser = (start) => {
+    startRefUser.current = start;
+  };
+
+  const handleIncrementUser = (increment) => {
+    incrementRefUser.current = increment;
+  };
+
+  const handlePauseBot = (pause) => {
+    pauseRefBot.current = pause;
+  };
+
+  const handleResumeBot = (resume) => {
+    resumeRefBot.current = resume;
+  };
+
+  const handleRestartBot = (restart) => {
+    restartRefBot.current = restart;
+  };
+
+  const handleStartBot = (start) => {
+    startRefBot.current = start;
+  };
+
+  const handleIncrementBot = (increment) => {
+    incrementRefBot.current = increment;
+  };
+  // ---------------------------------------------------------
+
+  function findBestMove() {
+    engine.evaluatePosition(game.fen(), botLevel);
+    engine.onMessage(({ bestMove }) => {
+      if (bestMove) {
+        try {
+          const move = game.move({
+            from: bestMove.substring(0, 2),
+            to: bestMove.substring(2, 4),
+            promotion: bestMove.substring(4, 5)
+          });
+          if (move === null) return;
+          setGamePosition(game.fen());
+
+          // if first move by player then start the clock of player
+          if (game.moveNumber() === 1) {
+            startRefUser.current();
+          }
+          
+          // if valid move the pause and increment the timer of ai
+          incrementRefBot.current(increment.current);
+          pauseRefBot.current();
+
+          if (game.isGameOver() || game.isDraw()) {
+            pauseRefUser.current();
+            pauseRefBot.current();
+            alert("AI won the game!!!");
+            return false;
+          }
+
+          // if game is not ended then resume the timer of player
+          resumeRefUser.current();
+
+        } catch (error) {
+          console.log("error: ", error);
+        }
+      }
+    });
+  }
+
+  function onDrop(sourceSquare, targetSquare, piece) {
     try {
-      
       const move = game.move({
         from: sourceSquare,
         to: targetSquare,
-        promotion: "q",
+        promotion: piece[1].toLowerCase() ?? "q"
       });
-      if (move === null) return;
-      //For increment  and pause timer
-      if (game.turn() === "b") {
-        const white_inc_timer = minutes_w * 60 + seconds_w + increment;
-        time_w.setSeconds(time_w.getSeconds() + white_inc_timer);
-        restart_w(time_w, false);
-        start_b();
-      } else {
-        const black_inc_timer = minutes_b * 60 + seconds_b + increment;
-        time_b.setSeconds(time_b.getSeconds() + black_inc_timer);
-        restart_b(time_b, false);
-        start_w();
+      if (move === null) return false;
+      setGamePosition(game.fen());
+
+      // if first move by player start the timer of bot
+      if (game.moveNumber() === 1) {
+        startRefBot.current(); 
+      }
+      // after making valid move pause and increment the timer for player
+      pauseRefUser.current();
+      incrementRefUser.current(increment.current);
+
+      if (game.isGameOver() || game.isDraw()) {
+        pauseRefUser.current();
+        pauseRefBot.current();
+        alert("Player won the game!!!");
+        return false;
       }
 
-      if (game.isCheckmate()) {
-        alert(
-          "Checkmate " + (game.turn() === "w" ? "Black" : "White") + " wins"
-        );
-      } else if (game.isStalemate()) alert("Stalemate");
-      else if (game.isThreefoldRepetition()) alert("Threefold Repetition");
-      else if (game.isDraw()) alert("Draw");
-      else if (game.inCheck()) alert("Check");
+      // if game is not ended then resume the timer of bot
+      resumeRefBot.current();
 
-      setGame(new Chess(game.fen()));
-      setMoves([...moves, ...game.history()]);
+      findBestMove();
+      return true;
     } catch (e) {
-      console.log(e);
+      console.log("error: ", e);
+      return false;
     }
-  };
-
-  const restart_board = () => {
-    setGame(new Chess());
-    setMoves([]);
-
-    const newTimeB = new Date();
-    const newTimeW = new Date();
-
-    const [base, increment] = selectedTime.split("+").map(Number);
-    newTimeB.setSeconds(newTimeB.getSeconds() + base * 60);
-    newTimeW.setSeconds(newTimeW.getSeconds() + base * 60);
-
-
-    restart_b(newTimeB, false); // Restart Black's timer
-    restart_w(newTimeW, false); // Restart White's timer
-  };
-
-  // console.log("timer:",timer)
-  return (
-    <>
-      <div className="p-4 flex justify-evenly h-screen">
-        <div className="flex h-fit p-2 ">
-          <Chessboard
-            // id="standard"
-            boardWidth={560}
-            position={game.fen()}
-            onPieceDrop={drop}
-            customBoardStyle={{
-              borderRadius: "5px",
-              boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`,
-              
-            }}
-          />
-          <div className="flex flex-col justify-between">
-            <Clock
-              expiryTimestamp={time_b}
-              minutes={minutes_b}
-              seconds={seconds_b}
-              isRunning={isRunning_b}
-              start={start_b}
-              pause={pause_b}
-              resume={resume_b}
-              restart={restart_b}
-            />
-            <Clock
-              expiryTimestamp={time_w}
-              minutes={minutes_w}
-              seconds={seconds_w}
-              isRunning={isRunning_w}
-              start={start_w}
-              pause={pause_w}
-              resume={resume_w}
-              restart={restart_w}
-            />
-          </div>
-        </div>
-        <div className="h-[92%] border-black border-2 w-1/3 p-2">
-          <h1 className="text-center text-2xl font-bold underline mb-4">
-            Moves
-          </h1>
-          <div className="h-[80%] scrollbar-hidden overflow-y-scroll">
-          {moves.map((move, index) => {
-  // Only process every two moves together (one for White, one for Black)
-  if (index % 2 === 0) {
-    return (
-      <div
-        key={index}
-        className="text-center border-black border-b-2 p-2 w-1/2 m-auto flex justify-between"
-      >
-        <span>{index / 2 + 1}. {moves[index]}</span>
-        <span>{moves[index + 1] || ""}</span>
-      </div>
-    );
   }
-  return null; // Skip odd indexes since they're handled with the previous one
-})}
 
+  // it is called after Selecting the option for game like bot level, color, etc
+  const handleStartGame = ({ format, level, color, time }) => {
+    setGameFormat(format);
+    setBotLevel(level);
+    if (color === 'random') {
+      const randomColor = Math.random() < 0.5 ? 'white' : 'black';
+      setPlayerColor(randomColor);
+      player_color = randomColor;
+    } else {
+      player_color = color;
+      setPlayerColor(color);
+    }
+    setOpenSelectAI(false);
+
+    const [base, inc] = time.split("+").map(Number);
+    console.log("time: ", time, "  base: ", base, "   inc: ", inc);
+    
+    increment.current = inc;
+
+    const time_in_second = base * 60;
+    const newETSbot = new Date();
+    newETSbot.setSeconds(newETSbot.getSeconds() + time_in_second);
+    expiryTimestampBot.current = newETSbot;
+    
+    const newETSplayer = new Date();
+    newETSplayer.setSeconds(newETSplayer.getSeconds() + time_in_second);
+    expiryTimestampUser.current = newETSplayer;
+
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <div id="game" className={openSelectAI ? "blur-sm" : ""}>
+        <div className="p-4 flex justify-evenly h-screen">
+          <div className="flex h-fit p-2">
+            <Chessboard
+              style={{ filter: "blur(10px)" }}
+              boardWidth={560}
+              boardOrientation={playerColor}
+              position={gamePosition}
+              onPieceDrop={onDrop}
+              customBoardStyle={{
+                borderRadius: "5px",
+                boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`,
+              }}
+            />
+            <div className="flex flex-col justify-between">
+              <div className="p-2">
+                <div className="flex">
+                  <span className="pl-4">Bot level-{botLevel}</span>
+                </div>
+                {!loading && (
+                  <Timer
+                    expiryTimestamp={expiryTimestampBot.current}
+                    onTimeUp={() => alert('Time is up! Player won the game!!!')}
+                    onPause={handlePauseBot}
+                    onResume={handleResumeBot}
+                    onRestart={handleRestartBot}
+                    onStart={handleStartBot}
+                    onIncrement={handleIncrementBot}
+                    highlight={game.turn() != player_color.substring(0,1)}
+                  />
+                )}
+              </div>
+              <div className="p-2">
+                <div className="flex">
+                  <span className={game.turn() == playerColor.substring(0, 1) ? "bg-red-500 pl-2" : "pl-2"}>player</span>
+                </div>
+                {!loading && (
+                  <Timer
+                    expiryTimestamp={expiryTimestampUser.current}
+                    onTimeUp={() => alert('Time is up! AI Won the game!!!')}
+                    onPause={handlePauseUser}
+                    onResume={handleResumeUser}
+                    onRestart={handleRestartUser}
+                    onStart={handleStartUser}
+                    onIncrement={handleIncrementUser}
+                    highlight={game.turn() == player_color.substring(0,1)}
+                  />
+                )}
+              </div>
+            </div>
           </div>
-          <div>
-            <button
-              className="bg-blue-500 text-white p-2 rounded-md w-full mt-4"
-              onClick={restart_board}
-            >
-              Reset
-            </button>
-          </div>
+          <Move moves={game.history()} onUndo={() => { game.undo(); game.undo(); setGamePosition(game.fen()); }} />
         </div>
       </div>
-
-      <Popup open={popUp} closeOnDocumentClick={false}>
-        <div className="p-4 shadow-2xl bg-slate-900 rounded-xl h-[70vh] w-[40vw] flex flex-col justify-center items-center space-y-6">
-          <h2 className="text-xl text-white font-bold">Select Chess Timer</h2>
-
-          <div className="w-full flex flex-col space-y-4">
-            <div className="flex flex-col items-center">
-              <h3 className="text-white text-lg font-semibold">Bullet</h3>
-              <div className="flex space-x-4">
-                {["1+10", "1+5", "2+5"].map((time) => (
-                  <button
-                    key={time}
-                    className={`px-4 py-2 rounded-lg ${
-                      selectedTime === time ? "bg-blue-500" : "bg-gray-700"
-                    } text-white`}
-                    onClick={() => setSelectedTime(time)}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center">
-              <h3 className="text-white text-lg font-semibold">Blitz</h3>
-              <div className="flex space-x-4">
-                {["3+2", "5+0", "5+3", "5+5"].map((time) => (
-                  <button
-                    key={time}
-                    className={`px-4 py-2 rounded-lg ${
-                      selectedTime === time ? "bg-blue-500" : "bg-gray-700"
-                    } text-white`}
-                    onClick={() => setSelectedTime(time)}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center">
-              <h3 className="text-white text-lg font-semibold">Rapid</h3>
-              <div className="flex space-x-4">
-                {["10+0", "10+5", "15+10", "30+0"].map((time) => (
-                  <button
-                    key={time}
-                    className={`px-4 py-2 rounded-lg ${
-                      selectedTime === time ? "bg-blue-500" : "bg-gray-700"
-                    } text-white`}
-                    onClick={() => setSelectedTime(time)}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <button
-            className="bg-blue-500 text-white px-6 py-2 rounded-lg mt-4"
-            onClick={() => {
-              setPopUp(false);
-            }}
-          >
-            Confirm
-          </button>
-        </div>
-      </Popup>
-    </>
+      {openSelectAI && (
+        <SelectAI
+          open={openSelectAI}
+          onStartGame={handleStartGame}
+          onClose={() => {
+            setOpenSelectAI(false);
+            console.log("player_color: ", player_color, " playerColor: ", playerColor);
+            if (player_color == 'black') {
+              findBestMove();
+            }
+          }}
+        />
+      )}
+    </div>
   );
 }
+export default PlayerVsBot;
