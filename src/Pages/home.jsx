@@ -29,13 +29,22 @@ const Home = () => {
         // setUser((prev) => {
           //   return {...prev,name: data.username}
           // });
-        }
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("email", data.email);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      let username = localStorage.getItem("username");
+      username = username ? username : "user";
+      dispatch(setUser({name: username, profilepic: pp}));
     });
-
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("email");
     window.location.reload();
   };
 
