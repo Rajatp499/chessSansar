@@ -31,21 +31,21 @@ ChessSansar is a web-based chess application built with React and Vite. It allow
 ```
 chessSansar/
 ├── public
-│   └── stockfish.js
+│   └── stockfish.js
 ├── README.md
 └──src
-    ├── components/
-    ├── Engine/
-    ├── Pages/
-    │   ├── engine.jsx
-    │   ├── home.jsx
-    │   ├── logIn.jsx
-    │   ├── online.jsx
-    │   ├── puzzle.jsx
-    │   └── signUp.jsx
-    ├── Routes.jsx
-    ├── Store/
-    └── utils/
+    ├── components/
+    ├── Engine/
+    ├── Pages/
+    │   ├── engine.jsx
+    │   ├── home.jsx
+    │   ├── logIn.jsx
+    │   ├── online.jsx
+    │   ├── puzzle.jsx
+    │   └── signUp.jsx
+    ├── Routes.jsx
+    ├── Store/
+    └── utils/
 ```
 
 ## Getting Started
@@ -64,12 +64,18 @@ cd chessSansar
 npm install
 ```
 
+2. Create a `.env` file in the root directory and add:
+```
+VITE_BACKEND_CHESS_API=http://0.0.0.0:8000
+VITE_BACKEND_CHESS_WS_API=ws://0.0.0.0:8000/ws/
+```
+
 ### Development
 
 ```sh
 npm run dev
 ```
-Access the application at `http://localhost:3000`
+Access the application at `http://localhost:5173/`
 
 ### Production Build
 
@@ -95,3 +101,4 @@ Visit [ChessSansar Production](https://chesssansar.com)
 - [Chess.js](https://github.com/jhlywa/chess.js) - Chess library
 - [React Chessboard](https://github.com/Clariity/react-chessboard) - Chessboard component
 - [Tailwind CSS](https://tailwindcss.com/) - CSS framework
+
