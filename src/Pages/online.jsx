@@ -8,6 +8,7 @@ import pp from "../assets/profile.gif";
 export default function Online() {
   const [game, setGame] = useState(new Chess());
   const [moves, setMoves] = useState([]);
+  const [turn, setTurn] = useState(false);
   
   const [user, setUser] = useState("start");
   const [userColor, setUserColor] = useState("");
@@ -62,6 +63,11 @@ export default function Online() {
       setPlayer2(message.game.player2);
 
       const current_turn = message.game.current_turn;
+      console.log("joined, changing turn: username: ", userName);
+      setTurn(false);
+      if (message.game.player1 == userName && current_turn == 'player1') setTurn(true);
+      if (message.game.player2 == userName && current_turn == 'player2') setTurn(true);
+
       console.log("Turn:", current_turn);
     }
 
@@ -72,16 +78,25 @@ export default function Online() {
       setPlayer1(message.game.player1);
       setPlayer2(message.game.player2);
 
+      // change the turn state to reflect the current player turn
       const current_turn = message.game.current_turn;
-      console.log("Turn:", current_turn);
+      setTurn(false);
+      if (message.game.player1 == userName && current_turn == 'player1') setTurn(true);
+      if (message.game.player2 == userName && current_turn == 'player2') setTurn(true);
 
       setGame(new Chess(message.game.fen));
     }
 
     if (info === "moved") {
+
+      // change the turn state to reflect the current player turn
       const current_turn = message.game.current_turn;
-      console.log("Turn:", current_turn);
-      if (message.message.user !== user) {
+      setTurn(false);
+      if (message.game.player1 == userName && current_turn == 'player1') setTurn(true);
+      if (message.game.player2 == userName && current_turn == 'player2') setTurn(true);
+
+
+      if (message.message.user !== user) {  // move made by opponent
         setGame(new Chess(message.game.fen));
       }
     }
@@ -105,18 +120,16 @@ export default function Online() {
     socket.current.onmessage = websocketmessagecallback;
     socket.current.onclose = websocketclosecallback;
     socket.current.onerror = websocketerrorcallback;
-
-    console.log("useffect Socket:", socket);
   }, []);
 
 
 
   const drop = (sourceSquare, targetSquare) => {
     try {
-      console.log("Game turn: ", game.turn());
-      console.log("user color: ", userColor);
-      if (game.turn() !== userColor) 
+      if (game.turn() !== userColor) {
+        console.log("Not your turn");
         return;
+      }
       
       const move = game.move({
         from: sourceSquare,
@@ -138,6 +151,7 @@ export default function Online() {
   // console.log("timer:",timer)
   return (
     <>
+      {/* <h1>Turn: {turn ? 'true' : 'false'}</h1> */}
       <div className="p-4 flex justify-evenly h-screen">
         <div className="flex h-fit p-2">
           {userColor}
@@ -158,14 +172,14 @@ export default function Online() {
             <div className="p-2">
               <div className="flex">
                 <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
-                <span className="pl-4">{player1 == user ? player2: player1}</span>
+                <span className={ turn ? "pl-4" : 'pl-4 bg-green-300'}>{player1 == user ? player2: player1}</span>
               </div>
             </div>
 
             <div className="p-2">
             <div className="flex">
               <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
-              <span className="bg-red-500 pl-2">{user}</span>
+              <span className={ turn ? "pl-2 bg-green-300" : "pl-2"}>{user}</span>
               </div>
             </div>
           </div>
