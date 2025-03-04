@@ -4,12 +4,18 @@ import { Chessboard } from "react-chessboard";
 import { useParams } from "react-router-dom";
 import pp from "../assets/profile.gif";
 
+import Move from "../components/move";
+
 
 export default function Online() {
-  const [game, setGame] = useState(new Chess());
+
+  const game = useRef(null);
+  const [gamePosition, setGamePosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+  // const [game, setGame] = useState(new Chess());
   const [moves, setMoves] = useState([]);
   const [turn, setTurn] = useState(false);
-  
+
   const [user, setUser] = useState("start");
   const [userColor, setUserColor] = useState("");
   const [player1, setPlayer1] = useState("player 1");
@@ -20,14 +26,14 @@ export default function Online() {
 
   const updateUserState = (p1, p2, p1Col, p2Col) => {
     if (p1 == userName) {
-      setUserColor(p1Col.substr(0,1));
+      setUserColor(p1Col.substr(0, 1));
       console.log(`user: ${user}`);
-      console.log("userName:",userName)
+      console.log("userName:", userName)
       console.log(`User Color: ${p1}: ${p1Col}`);
     } else {
-      setUserColor(p2Col.substr(0,1));
+      setUserColor(p2Col.substr(0, 1));
       console.log(`user: ${user}`);
-      console.log("userName:",userName)
+      console.log("userName:", userName)
       console.log(`User Color: ${p2}: ${p2Col}`);
     }
   }
@@ -43,7 +49,7 @@ export default function Online() {
 
     if (info === "connected") {
       setUser(message.message.player.user);
-      userName  =  message.message.player.user;
+      userName = message.message.player.user;
       console.log(message.message.player.user);
     }
 
@@ -84,7 +90,26 @@ export default function Online() {
       if (message.game.player1 == userName && current_turn == 'player1') setTurn(true);
       if (message.game.player2 == userName && current_turn == 'player2') setTurn(true);
 
-      setGame(new Chess(message.game.fen));
+      try {
+        const r_moves = message.game.moves;
+        console.log("received moves: ", r_moves);
+
+        // create new chess and make move made till now
+        game.current = new Chess();
+        const sortedMoves = r_moves.sort((a, b) => new Date(a.played_at) - new Date(b.played_at));
+        sortedMoves.forEach(moveObj => {
+          console.log("move obj: ", moveObj);
+          game.current.move({
+            from: moveObj.move.substring(0, 2),
+            to: moveObj.move.substring(2, 4),
+            promotion: moveObj.move.substring(4, 5).toLowerCase() || "q"
+          });
+        });
+        // game.current.load(message.game.fen);
+        setGamePosition(game.current.fen());
+      } catch (e) {
+        console.log("error:: reconnected :: ", e)
+      }
     }
 
     if (info === "moved") {
@@ -95,9 +120,22 @@ export default function Online() {
       if (message.game.player1 == userName && current_turn == 'player1') setTurn(true);
       if (message.game.player2 == userName && current_turn == 'player2') setTurn(true);
 
+      if (message.message.player.user !== userName) {  // move made by opponent
+        // setGame(new Chess(message.game.fen));
+        const r_move = message.game.move; // moved recieved for online
+        console.log("user: ", userName, "   received_user: ", message.message.player.user);
 
-      if (message.message.user !== user) {  // move made by opponent
-        setGame(new Chess(message.game.fen));
+        try {
+          const move = game.current.move({
+            from: r_move.substring(0, 2),
+            to: r_move.substr(2, 4),
+            promotion: r_move.substr(4,5).toLowerCase() ?? "q"
+          });
+          if (move === null) return false;
+          setGamePosition(game.current.fen());
+        } catch (e) {
+          console.log("error while making opponent move: ", e);
+        }
       }
     }
 
@@ -113,6 +151,8 @@ export default function Online() {
 
   useEffect(() => {
 
+    game.current = new Chess();
+
     const BACKEND_WS_API = import.meta.env.VITE_BACKEND_CHESS_WS_API;
     socket.current = new WebSocket(BACKEND_WS_API + "/chess/" + roomid + "/?token=" + localStorage.getItem("token"));
 
@@ -120,32 +160,44 @@ export default function Online() {
     socket.current.onmessage = websocketmessagecallback;
     socket.current.onclose = websocketclosecallback;
     socket.current.onerror = websocketerrorcallback;
-  }, []);
+
+    return () => {
+      if (socket.current)
+        socket.current.close();
+    }
+  }, [roomid]);
 
 
 
-  const drop = (sourceSquare, targetSquare) => {
+  const drop = (sourceSquare, targetSquare, piece) => {
     try {
-      if (game.turn() !== userColor) {
+      if (!game.current) return false;   // game is not initalized
+      if (game.current.turn() !== userColor) {
         console.log("Not your turn");
         return;
       }
-      
-      const move = game.move({
+
+      const move = game.current.move({
         from: sourceSquare,
         to: targetSquare,
-        promotion: "q",
+        promotion: piece[1].toLowerCase() ?? "q"
       });
-  
-      if (move === null) return;
-  
-      setGame(new Chess(game.fen()));
+      if (move === null) return false;
+      setGamePosition(game.current.fen());
+
       const uci_move = `${move.from}${move.to}${move.promotion ? move.promotion : ""}`;
+      console.log("uci_move: ", uci_move);
       socket.current.send(JSON.stringify({ action: "make_move", "move": uci_move }));
+      return true;
     } catch (error) {
       console.error("Error:", error);
+      return false;
     }
   };
+
+  const handleUndo = () => {
+
+  }
 
 
   // console.log("timer:",timer)
@@ -154,13 +206,12 @@ export default function Online() {
       {/* <h1>Turn: {turn ? 'true' : 'false'}</h1> */}
       <div className="p-4 flex justify-evenly h-screen">
         <div className="flex h-fit p-2">
-          {userColor}
           <Chessboard
-            boardOrientation={userColor === 'b' ? 'black': 'white'}
+            boardOrientation={userColor === 'b' ? 'black' : 'white'}
             style={{ filter: "blur(10px)" }}
-            // id="standard"
             boardWidth={560}
-            position={game.fen()}
+            animationDuration={10}
+            position={gamePosition}
             onPieceDrop={drop}
             customBoardStyle={{
               borderRadius: "5px",
@@ -172,46 +223,22 @@ export default function Online() {
             <div className="p-2">
               <div className="flex">
                 <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
-                <span className={ turn ? "pl-4" : 'pl-4 bg-green-300'}>{player1 == user ? player2: player1}</span>
+                <span className={turn ? "pl-4" : 'pl-4 bg-green-300'}>{player1 == user ? player2 : player1}</span>
               </div>
             </div>
 
             <div className="p-2">
-            <div className="flex">
-              <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
-              <span className={ turn ? "pl-2 bg-green-300" : "pl-2"}>{user}</span>
+              <div className="flex">
+                <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
+                <span className={turn ? "pl-2 bg-green-300" : "pl-2"}>{user}</span>
               </div>
             </div>
           </div>
         </div>
-        <div className="h-[92%] border-black border-2 w-1/3 p-2">
-          <h1 className="text-center text-2xl font-bold underline mb-4">
-            Moves
-          </h1>
-          <div className="h-[80%] scrollbar-hidden overflow-y-scroll">
-            {moves.map((move, index) => {
-              // Only process every two moves together (one for White, one for Black)
-              if (index % 2 === 0) {
-                return (
-                  <div
-                    key={index}
-                    className="text-center border-black border-b-2 p-2 w-1/2 m-auto flex justify-between"
-                  >
-                    <span>{index / 2 + 1}. {moves[index]}</span>
-                    <span>{moves[index + 1] || ""}</span>
-                  </div>
-                );
-              }
-              return null; // Skip odd indexes since they're handled with the previous one
-            })}
-
-          </div>
-          <div>
-          </div>
-        </div>
+        {game.current && 
+        <Move moves={game.current.history()} onUndo={() => handleUndo} />
+        }
       </div>
-
-      
     </>
   );
 }
