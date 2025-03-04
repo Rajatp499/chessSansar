@@ -11,15 +11,13 @@ const Login = () => {
   const navigate = useNavigate();
 
   const [error, setError] = useState("");
-
-  const BACKEND_API = import.meta.env.VITE_BACKEND_CHESS_API;
-  console.log("Backend API:", BACKEND_API);
-
+  
+  
   // Handle Input Change
   const handleChange = (e) => {
     setloginData({ ...loginData, [e.target.name]: e.target.value });
   };
-
+  
   // Handle Form Submission
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -28,18 +26,22 @@ const Login = () => {
       setError("All fields are required.");
       return;
     }
-    fetch(BACKEND_API + "/auth/token/login/", {
+    
+    const URL = import.meta.env.VITE_BACKEND_CHESS_API + "/auth/token/login/";
+    console.log("url :: ", URL);
+    fetch(URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(loginData),
     })
-      .then((res) => res.json())
+      .then((res) => {
+        return res.json()
+      })
       .then((data) => {
         let token = data.auth_token;
         localStorage.setItem("token", token);
-        console.log("User login token:", token);
         navigate("/");
       })
       .catch((err) => {
