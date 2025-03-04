@@ -11,9 +11,9 @@ const Home = () => {
 
   const dispatch = useDispatch();
   
-  const BACKEND_API = import.meta.env.VITE_BACKEND_CHESS_API;
   useEffect(() => {
-    fetch(BACKEND_API+"/auth/users/me/", {
+    const URL = import.meta.env.VITE_BACKEND_CHESS_API + "/auth/users/me/";
+    fetch(URL, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
