@@ -32,6 +32,10 @@ const JoinPage = () => {
                 console.log("game: ", message.game);
                 setGames((prev) => [...prev, message.game]);
             }
+            if (message.message.type === 'all' && message.message.info === 'unavailable') {
+                console.log("game_id: ", message.game.game_id);
+                setGames(prev => prev.filter(g => g.game_id !== message.game.game_id));
+            }
             console.log("Received response:", message);
         };
 
@@ -114,6 +118,7 @@ const JoinPage = () => {
                         <div>
                             <span className="font-medium">Room: {game.game_id}</span>
                             <p className="text-sm text-gray-600">Host: {game.player1}</p>
+                            <p className="text-sm text-gray-600">Host Color: {game.player1_color}</p>
                         </div>
                         <span className="text-sm text-green-600">Available</span>
                     </div>
