@@ -3,7 +3,7 @@ import pp from "../../assets/profile.gif";
 
 // Initial state
 const user = {
- name:"    ",
+  name: "    ",
   profilepic: null
 };
 
@@ -19,7 +19,7 @@ const userSlice = createSlice({
 });
 
 // Export actions
-export const {setUser} = userSlice.actions;
+export const { setUser } = userSlice.actions;
 
 // Export reducer
 export default userSlice.reducer;
