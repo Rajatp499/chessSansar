@@ -258,14 +258,35 @@ export default function Online() {
     setGamePosition(gameCopy.fen());
   }
 
+  const [boardWidth, setBoardWidth] = useState(720);
+
+  // Add window resize handler
+  useEffect(() => {
+    const handleResize = () => {
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const maxWidth = Math.min(screenWidth * 0.5, screenHeight * 0.8);
+      setBoardWidth(maxWidth);
+    };
+
+    // Set initial size
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
       <div className="p-4 flex justify-evenly h-screen">
-        <div className="flex h-fit p-2">
-          <div>
+        <div className="flex h-fit p-2 flex-wrap">
+          <div className="flex">
             <Chessboard
               boardOrientation={userColor === 'b' ? 'black' : 'white'}
-              boardWidth={560}
+              boardWidth={boardWidth}
               animationDuration={10}
               position={gamePosition}
               onPieceDrop={drop}
@@ -280,7 +301,7 @@ export default function Online() {
           
           <div className="flex flex-col justify-between ml-4">
             <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-3">
                 <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
                 <span className={`px-3 py-1 rounded ${turn 
                   ? '' 
@@ -293,7 +314,7 @@ export default function Online() {
             </div>
 
             <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-3">
                 <span className={`px-3 py-1 rounded ${turn 
                   ? isDark 
                     ? 'bg-green-700' 
