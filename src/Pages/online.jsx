@@ -129,7 +129,7 @@ export default function Online() {
           const move = game.current.move({
             from: r_move.substring(0, 2),
             to: r_move.substr(2, 4),
-            promotion: r_move.substr(4,5).toLowerCase() ?? "q"
+            promotion: r_move.substr(4, 5).toLowerCase() ?? "q"
           });
           if (move === null) return false;
           setGamePosition(game.current.fen());
@@ -197,6 +197,30 @@ export default function Online() {
 
   const handleUndo = () => {
 
+  };
+
+  const handleResign = () => {
+
+  };
+
+  const handleDrawReq = () => {
+
+  };
+
+  const handleAbort = () => {
+
+  };
+
+  const handleGoToMove = (index) => {
+    console.log("gotomove: index: ", index);
+    const step = index === 0 ? 0 : index + 1;
+    const gameCopy = new Chess();
+    const history = game.current.history();
+
+    for (let i = 0; i < step; i++) {
+      gameCopy.move(history[i]);
+    }
+    setGamePosition(gameCopy.fen());
   }
 
 
@@ -206,19 +230,22 @@ export default function Online() {
       {/* <h1>Turn: {turn ? 'true' : 'false'}</h1> */}
       <div className="p-4 flex justify-evenly h-screen">
         <div className="flex h-fit p-2">
-          <Chessboard
-            boardOrientation={userColor === 'b' ? 'black' : 'white'}
-            style={{ filter: "blur(10px)" }}
-            boardWidth={560}
-            animationDuration={10}
-            position={gamePosition}
-            onPieceDrop={drop}
-            customBoardStyle={{
-              borderRadius: "5px",
-              boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`,
+          <div>
+            <Chessboard
+              boardOrientation={userColor === 'b' ? 'black' : 'white'}
+              style={{ filter: "blur(10px)" }}
+              boardWidth={560}
+              animationDuration={10}
+              position={gamePosition}
+              onPieceDrop={drop}
+              customBoardStyle={{
+                borderRadius: "5px",
+                boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`,
 
-            }}
-          />
+              }}
+              />
+              </div>
+            
           <div className="flex flex-col justify-between">
             <div className="p-2">
               <div className="flex">
@@ -235,9 +262,17 @@ export default function Online() {
             </div>
           </div>
         </div>
-        {game.current && 
-        <Move moves={game.current.history()} onUndo={() => handleUndo} />
+        {game.current &&
+          <Move 
+            moves={game.current.history()} 
+            onUndo={handleUndo} 
+            onResign={handleResign} 
+            onAbort={handleAbort} 
+            onDrawReq={handleDrawReq} 
+            onGoToMove={handleGoToMove} 
+          />
         }
+
       </div>
     </>
   );
