@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+.MuiSlider-root {
+  color: #3b82f6 !important; /* blue-500 */
+}
+
+.MuiSlider-rail {
+  opacity: 0.3;
+}
+
+.MuiSlider-track {
+  opacity: 0.8;
+}
+
+.dark .MuiSlider-root {
+  color: #60a5fa !important; /* blue-400 */
+}
 /* Hide SCrollbar */
 /* Hide scrollbar for Chrome, Safari, and Edge */
 .scrollbar-hidden::-webkit-scrollbar {
