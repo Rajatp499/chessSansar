@@ -196,19 +196,25 @@ export default function Online() {
   };
 
   const handleUndo = () => {
-
+    console.log("Undo Clicked!!");
+  };
+  const handleRedo = () => {
+    console.log("Redo Clicked!!");
+  };
+  const handlePause = () => {
+    console.log("Pause Clicked!!");
   };
 
   const handleResign = () => {
-
+    console.log("Resign Clicked");
   };
 
   const handleDrawReq = () => {
-
+    console.log("Draw Req clicked");
   };
 
   const handleAbort = () => {
-
+    console.log("Abort clicked");
   };
 
   const handleGoToMove = (index) => {
@@ -265,11 +271,13 @@ export default function Online() {
         {game.current &&
           <Move 
             moves={game.current.history()} 
-            onUndo={handleUndo} 
             onResign={handleResign} 
             onAbort={handleAbort} 
             onDrawReq={handleDrawReq} 
-            onGoToMove={handleGoToMove} 
+            onGoToMove={handleGoToMove}
+            onUndo={handleUndo} 
+            onRedo={handleRedo}
+            onPause={handlePause}
           />
         }
 
