@@ -144,7 +144,7 @@ export default function Online() {
     }
 
     if (info === 'resigned') {
-
+      console.log('game ended: message: ', message);
     }
 
     if (info === "invalid") {
@@ -200,7 +200,7 @@ export default function Online() {
       const move = game.current.move({
         from: sourceSquare,
         to: targetSquare,
-        promotion: piece[1].toLowerCase() ?? "q"
+        promotion: piece[1]?.toLowerCase() ?? "q"
       });
       if (move === null) return false;
       setGamePosition(game.current.fen());
@@ -279,6 +279,90 @@ export default function Online() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const [moveSquares, setMoveSquares] = useState({});
+
+  const getMoveOptions = (square) => {
+    const moves = game.current.moves({
+      square,
+      verbose: true
+    });
+    if (moves.length === 0) {
+      return;
+    }
+
+    const newSquares = {};
+    moves.forEach((move) => {
+      newSquares[move.to] = {
+        background:
+          game.current.get(move.to) 
+            ? 'radial-gradient(circle, rgba(0,0,0,.1) 85%, transparent 85%)'
+            : 'radial-gradient(circle, rgba(0,0,0,.1) 25%, transparent 25%)',
+        borderRadius: '50%'
+      };
+    });
+    newSquares[square] = {
+      background: 'rgba(255, 255, 0, 0.4)'
+    };
+    setMoveSquares(newSquares);
+  };
+
+  // Add this at the start of the component
+  const [checkSquare, setCheckSquare] = useState('');
+
+  // Update checkSquare whenever game position changes
+  useEffect(() => {
+    if (game.current) {
+      if (game.current.inCheck()) {
+        const color = game.current.turn();
+        const kingSquare = game.current.board().reduce((acc, row, i) => {
+          const j = row.findIndex(piece => piece && piece.type === 'k' && piece.color === color);
+          return j >= 0 ? `${String.fromCharCode(97 + j)}${8 - i}` : acc;
+        }, '');
+        setCheckSquare(kingSquare);
+      } else {
+        setCheckSquare('');
+      }
+    }
+  }, [gamePosition]);
+
+  const [selectedPiece, setSelectedPiece] = useState(null);
+
+  const handleSquareClick = (square) => {
+    if (!game.current || game.current.turn() !== userColor) return;
+
+    if (!selectedPiece) {
+      // First click - select the piece if it's the player's piece
+      const piece = game.current.get(square);
+      if (piece && piece.color === userColor) {
+        setSelectedPiece(square);
+        getMoveOptions(square);
+      }
+    } else {
+      // Second click - attempt to make the move
+      if (square !== selectedPiece) {
+        const move = drop(selectedPiece, square, '');
+        if (!move) {
+          // If move is invalid, just update selected piece if it's a valid piece
+          const piece = game.current.get(square);
+          if (piece && piece.color === userColor) {
+            setSelectedPiece(square);
+            getMoveOptions(square);
+          } else {
+            setSelectedPiece(null);
+            setMoveSquares({});
+          }
+        } else {
+          setSelectedPiece(null);
+          setMoveSquares({});
+        }
+      } else {
+        // Clicking the same square deselects the piece
+        setSelectedPiece(null);
+        setMoveSquares({});
+      }
+    }
+  };
+
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
       <div className="p-4 flex justify-evenly h-screen">
@@ -287,9 +371,23 @@ export default function Online() {
             <Chessboard
               boardOrientation={userColor === 'b' ? 'black' : 'white'}
               boardWidth={boardWidth}
-              animationDuration={10}
+              animationDuration={100}
               position={gamePosition}
               onPieceDrop={drop}
+              onSquareClick={handleSquareClick}
+              onPieceDragBegin={(piece, square) => getMoveOptions(square)}
+              onPieceDragEnd={() => {
+                setSelectedPiece(null);
+                setMoveSquares({});
+              }}
+              customSquareStyles={{
+                ...moveSquares,
+                ...(checkSquare ? {
+                  [checkSquare]: {
+                    background: 'rgba(255, 0, 0, 0.7)'
+                  }
+                } : {})
+              }}
               customBoardStyle={{
                 borderRadius: "5px",
                 boxShadow: isDark 
@@ -299,6 +397,7 @@ export default function Online() {
             />
           </div>
           
+          {/* Rest of the component remains the same */}
           <div className="flex flex-col justify-between ml-4">
             <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
               <div className="flex flex-col items-center gap-3">
