@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function Move({ moves, onUndo, onRedo, onPause, onResign, onDrawReq, onAbort, onGoToMove }) {
+export default function Move({ moves, isDark, onUndo, onRedo, onPause, onResign, onDrawReq, onAbort, onGoToMove }) {
   const moveListRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -12,40 +12,41 @@ export default function Move({ moves, onUndo, onRedo, onPause, onResign, onDrawR
   }, [moves]);
 
   return (
-    <div className="h-[92%] border-black border-2 w-1/3 p-2">
-      <h1 className="text-center text-2xl font-bold underline mb-4">
+    <div className={`h-[92%] border-2 w-1/3 p-2 ${isDark ? 'bg-gray-800 border-gray-600' : 'bg-white border-black'}`}>
+      <h1 className={`text-center text-2xl font-bold underline mb-4 ${isDark ? 'text-white' : 'text-black'}`}>
         Moves
       </h1>
-      <div ref={moveListRef} className="h-[70%]  border-gray-600 border-x-2 scrollbar-hidden overflow-y-scroll">
+      <div ref={moveListRef} className={`h-[70%] border-x-2 scrollbar-hidden overflow-y-scroll ${isDark ? 'border-gray-600' : 'border-gray-600'}`}>
         {Array.from({ length: Math.ceil(moves.length / 2) }).map((_, i) => {
           const moveNumber = i + 1;
           const whiteMove = moves[i * 2];
           const blackMove = moves[i * 2 + 1];
           
-            return (
+          return (
             <div 
               key={i} 
-              className={`text-center border-black border-t-2 ${i === Math.ceil(moves.length / 2) - 1 ? 'border-b-2' : ''} p-2 w-full m-auto flex`}
+              className={`text-center border-t-2 ${i === Math.ceil(moves.length / 2) - 1 ? 'border-b-2' : ''} p-2 w-full m-auto flex
+                ${isDark ? 'border-gray-600 text-white' : 'border-black text-black'}`}
             >
               <span className="w-8 flex-none">{moveNumber}.</span>
               <div className="flex flex-1 justify-between">
-              <span 
-                className={`px-2 rounded flex-1 mx-1 ${onGoToMove ? 'hover:bg-gray-200 cursor-pointer' : ''}`}
-                onClick={() => onGoToMove && onGoToMove(i * 2)}
-              >
-                {whiteMove}
-              </span>
-              {blackMove && (
                 <span 
-                className={`px-2 rounded flex-1 mx-1 ${onGoToMove ? 'hover:bg-gray-200 cursor-pointer' : ''}`}
-                onClick={() => onGoToMove && onGoToMove(i * 2 + 1)}
+                  className={`px-2 rounded flex-1 mx-1 ${onGoToMove ? `${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200'} cursor-pointer` : ''}`}
+                  onClick={() => onGoToMove && onGoToMove(i * 2)}
                 >
-                {blackMove}
+                  {whiteMove}
                 </span>
-              )}
+                {blackMove && (
+                  <span 
+                    className={`px-2 rounded flex-1 mx-1 ${onGoToMove ? `${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200'} cursor-pointer` : ''}`}
+                    onClick={() => onGoToMove && onGoToMove(i * 2 + 1)}
+                  >
+                    {blackMove}
+                  </span>
+                )}
               </div>
             </div>
-            );
+          );
         })}
       </div>
       <div className="mt-4">
@@ -54,7 +55,7 @@ export default function Move({ moves, onUndo, onRedo, onPause, onResign, onDrawR
             {onResign && (
               <button
                 onClick={onResign}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded flex-1"
+                className={`font-bold py-2 px-4 rounded flex-1 ${isDark ? 'bg-red-700 hover:bg-red-800' : 'bg-red-500 hover:bg-red-700'} text-white`}
               >
                 Resign
               </button>
@@ -62,9 +63,9 @@ export default function Move({ moves, onUndo, onRedo, onPause, onResign, onDrawR
             {onDrawReq && (
               <button
                 onClick={onDrawReq}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex-1"
+                className={`font-bold py-2 px-4 rounded flex-1 ${isDark ? 'bg-blue-700 hover:bg-blue-800' : 'bg-blue-500 hover:bg-blue-700'} text-white`}
               >
-                Offer Draw
+                Draw
               </button>
             )}
           </div>
@@ -73,7 +74,7 @@ export default function Move({ moves, onUndo, onRedo, onPause, onResign, onDrawR
             {onAbort && (
               <button
                 onClick={onAbort}
-                className="bg-slate-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded w-full"
+                className={`font-bold py-2 px-4 rounded w-full ${isDark ? 'bg-slate-700 hover:bg-red-800' : 'bg-slate-600 hover:bg-red-700'} text-white`}
               >
                 Abort
               </button>
@@ -83,7 +84,7 @@ export default function Move({ moves, onUndo, onRedo, onPause, onResign, onDrawR
         <div className="flex gap-2">
           {onUndo && (
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex-1"
+              className={`font-bold py-2 px-4 rounded flex-1 ${isDark ? 'bg-blue-700 hover:bg-blue-800' : 'bg-blue-500 hover:bg-blue-700'} text-white`}
               onClick={onUndo}
             >
               Undo
@@ -91,7 +92,7 @@ export default function Move({ moves, onUndo, onRedo, onPause, onResign, onDrawR
           )}
           {onRedo && (
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex-1"
+              className={`font-bold py-2 px-4 rounded flex-1 ${isDark ? 'bg-blue-700 hover:bg-blue-800' : 'bg-blue-500 hover:bg-blue-700'} text-white`}
               onClick={onRedo}
             >
               Redo
@@ -99,7 +100,7 @@ export default function Move({ moves, onUndo, onRedo, onPause, onResign, onDrawR
           )}
           {onPause && (
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex-1"
+              className={`font-bold py-2 px-4 rounded flex-1 ${isDark ? 'bg-blue-700 hover:bg-blue-800' : 'bg-blue-500 hover:bg-blue-700'} text-white`}
               onClick={onPause}
             >
               Pause
