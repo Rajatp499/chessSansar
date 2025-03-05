@@ -3,7 +3,7 @@ import { Chessboard } from "react-chessboard";
 import { Link } from "react-router-dom";
 import pp from "../assets/profile.gif"
 import { useSelector, useDispatch } from "react-redux";
-import { setUser } from "../Store/Slices/userSlice";
+import { setUser, clearUser } from "../Store/Slices/userSlice";
 import { toggleTheme } from "../Store/Slices/themeSlice";
 
 
@@ -25,26 +25,17 @@ const Home = () => {
       .then((data) => {
         console.log("User Data:", data);
         if (data.username) {
-          dispatch(setUser({ name: data.username, profilepic: pp }));
-          // setUser((prev) => {
-          //   return {...prev,name: data.username}
-          // });
-          localStorage.setItem("username", data.username);
-          localStorage.setItem("email", data.email);
+          dispatch(setUser({ name: data.username }));
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        let username = localStorage.getItem("username");
-        username = username ? username : "user";
-        dispatch(setUser({ name: username, profilepic: pp }));
       });
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    localStorage.removeItem("email");
+    dispatch(clearUser());
     window.location.reload();
   };
 
