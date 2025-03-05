@@ -6,8 +6,12 @@ import pp from "../assets/profile.gif";
 
 import Move from "../components/move";
 
+import { useSelector } from "react-redux";
+
+
 
 export default function Online() {
+  const isDark = useSelector((state) => state.theme.isDark);
 
   const game = useRef(null);
   const [gamePosition, setGamePosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -139,6 +143,22 @@ export default function Online() {
       }
     }
 
+    if (info === 'resigned') {
+
+    }
+
+    if (info === "invalid") {
+      // if move is invalid, undo the move
+      try {
+        if (game.current) {
+          game.current.undo();
+          setGamePosition(game.current.fen());
+        }
+      } catch (e) {
+        console.log("error while undoing invalid move: ", e);
+      }
+    }
+
   };
 
   const websocketclosecallback = () => {
@@ -207,14 +227,23 @@ export default function Online() {
 
   const handleResign = () => {
     console.log("Resign Clicked");
+    if (socket.current) {
+      socket.current.send(JSON.stringify({ action: "resign_game" }))
+    }
   };
 
   const handleDrawReq = () => {
     console.log("Draw Req clicked");
+    if (socket.current) {
+      socket.current.send(JSON.stringify({ action: "draw_request" }))
+    }
   };
 
   const handleAbort = () => {
     console.log("Abort clicked");
+    if (socket.current) {
+      socket.current.send(JSON.stringify({ action: "abort_game" }))
+    }
   };
 
   const handleGoToMove = (index) => {
@@ -229,46 +258,56 @@ export default function Online() {
     setGamePosition(gameCopy.fen());
   }
 
-
-  // console.log("timer:",timer)
   return (
-    <>
-      {/* <h1>Turn: {turn ? 'true' : 'false'}</h1> */}
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
       <div className="p-4 flex justify-evenly h-screen">
         <div className="flex h-fit p-2">
           <div>
             <Chessboard
               boardOrientation={userColor === 'b' ? 'black' : 'white'}
-              style={{ filter: "blur(10px)" }}
               boardWidth={560}
               animationDuration={10}
               position={gamePosition}
               onPieceDrop={drop}
               customBoardStyle={{
                 borderRadius: "5px",
-                boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`,
-
+                boxShadow: isDark 
+                  ? `0 5px 15px rgba(255, 255, 255, 0.2)`
+                  : `0 5px 15px rgba(0, 0, 0, 0.5)`,
               }}
-              />
-              </div>
-            
-          <div className="flex flex-col justify-between">
-            <div className="p-2">
-              <div className="flex">
+            />
+          </div>
+          
+          <div className="flex flex-col justify-between ml-4">
+            <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+              <div className="flex items-center gap-3">
                 <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
-                <span className={turn ? "pl-4" : 'pl-4 bg-green-300'}>{player1 == user ? player2 : player1}</span>
+                <span className={`px-3 py-1 rounded ${turn 
+                  ? '' 
+                  : isDark 
+                    ? 'bg-green-700' 
+                    : 'bg-green-300'}`}>
+                  {player1 == user ? player2 : player1}
+                </span>
               </div>
             </div>
 
-            <div className="p-2">
-              <div className="flex">
+            <div className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1 rounded ${turn 
+                  ? isDark 
+                    ? 'bg-green-700' 
+                    : 'bg-green-300' 
+                  : ''}`}>
+                  {user}
+                </span>
                 <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
-                <span className={turn ? "pl-2 bg-green-300" : "pl-2"}>{user}</span>
               </div>
             </div>
           </div>
         </div>
-        {game.current &&
+
+        {game.current && (
           <Move 
             moves={game.current.history()} 
             onResign={handleResign} 
@@ -278,10 +317,10 @@ export default function Online() {
             onUndo={handleUndo} 
             onRedo={handleRedo}
             onPause={handlePause}
+            isDark={isDark}
           />
-        }
-
+        )}
       </div>
-    </>
+    </div>
   );
 }
