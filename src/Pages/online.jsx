@@ -28,6 +28,8 @@ export default function Online() {
   const socket = useRef(null);
   let userName = "";
 
+  const [lastMove, setLastMove] = useState(null);
+
   const updateUserState = (p1, p2, p1Col, p2Col) => {
     if (p1 == userName) {
       setUserColor(p1Col.substr(0, 1));
@@ -129,6 +131,9 @@ export default function Online() {
         const r_move = message.game.move; // moved recieved for online
         console.log("user: ", userName, "   received_user: ", message.message.player.user);
 
+        const fromSquare = r_move.substring(0, 2);
+        const toSquare = r_move.substring(2, 4);
+        
         try {
           const move = game.current.move({
             from: r_move.substring(0, 2),
@@ -137,6 +142,7 @@ export default function Online() {
           });
           if (move === null) return false;
           setGamePosition(game.current.fen());
+          setLastMove({ from: fromSquare, to: toSquare });
         } catch (e) {
           console.log("error while making opponent move: ", e);
         }
@@ -187,8 +193,6 @@ export default function Online() {
     }
   }, [roomid]);
 
-
-
   const drop = (sourceSquare, targetSquare, piece) => {
     try {
       if (!game.current) return false;   // game is not initalized
@@ -204,6 +208,8 @@ export default function Online() {
       });
       if (move === null) return false;
       setGamePosition(game.current.fen());
+      setLastMove({ from: sourceSquare, to: targetSquare });
+
 
       const uci_move = `${move.from}${move.to}${move.promotion ? move.promotion : ""}`;
       console.log("uci_move: ", uci_move);
@@ -386,6 +392,14 @@ export default function Online() {
                   [checkSquare]: {
                     background: 'rgba(255, 0, 0, 0.7)'
                   }
+                } : {}),
+                ...(lastMove ? {
+                  [lastMove.from]: {
+                    background: isDark ? 'rgba(181, 137, 0, 0.6)' : 'rgba(255, 255, 0, 0.4)'
+                  },
+                  [lastMove.to]: {
+                    background: isDark ? 'rgba(181, 137, 0, 0.6)' : 'rgba(255, 255, 0, 0.4)'
+                  }
                 } : {})
               }}
               customBoardStyle={{
@@ -444,3 +458,77 @@ export default function Online() {
     </div>
   );
 }
+
+/*
+// Add this state at the start of your component
+const [lastMove, setLastMove] = useState(null);
+
+// Modify the drop function to update lastMove
+const drop = (sourceSquare, targetSquare, piece) => {
+  try {
+    if (!game.current) return false;
+    if (game.current.turn() !== userColor) {
+      console.log("Not your turn");
+      return;
+    }
+
+    const move = game.current.move({
+      from: sourceSquare,
+      to: targetSquare,
+      promotion: piece[1]?.toLowerCase() ?? "q"
+    });
+    if (move === null) return false;
+    setGamePosition(game.current.fen());
+    setLastMove({ from: sourceSquare, to: targetSquare }); // Add this line
+
+    const uci_move = `${move.from}${move.to}${move.promotion ? move.promotion : ""}`;
+    console.log("uci_move: ", uci_move);
+    socket.current.send(JSON.stringify({ action: "make_move", "move": uci_move }));
+    return true;
+  } catch (error) {
+    console.error("Error:", error);
+    return false;
+  }
+};
+
+// Also update the websocketmessagecallback to handle opponent's moves
+// Add this inside the "moved" info block where opponent makes a move
+if (message.message.player.user !== userName) {
+  try {
+    const r_move = message.game.move;
+    const fromSquare = r_move.substring(0, 2);
+    const toSquare = r_move.substring(2, 4);
+    
+    const move = game.current.move({
+      from: fromSquare,
+      to: toSquare,
+      promotion: r_move.substr(4, 5).toLowerCase() ?? "q"
+    });
+    if (move === null) return false;
+    setGamePosition(game.current.fen());
+    setLastMove({ from: fromSquare, to: toSquare }); // Add this line
+  } catch (e) {
+    console.log("error while making opponent move: ", e);
+  }
+}
+
+// Update the Chessboard component's customSquareStyles prop
+customSquareStyles={{
+  ...moveSquares,
+  ...(checkSquare ? {
+    [checkSquare]: {
+      background: 'rgba(255, 0, 0, 0.7)'
+    }
+  } : {}),
+  ...(lastMove ? {
+    [lastMove.from]: {
+      background: isDark ? 'rgba(181, 137, 0, 0.6)' : 'rgba(255, 255, 0, 0.4)'
+    },
+    [lastMove.to]: {
+      background: isDark ? 'rgba(181, 137, 0, 0.6)' : 'rgba(255, 255, 0, 0.4)'
+    }
+  } : {})
+}}
+
+
+*/
