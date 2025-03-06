@@ -86,6 +86,7 @@ const Signup = () => {
       const data = await response.json();
 
       if (response.status === 201) {
+        localStorage.setItem('signup-username', userData.username);
         handleSignupSuccess();
         return;
       }

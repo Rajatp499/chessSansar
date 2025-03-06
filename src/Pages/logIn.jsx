@@ -30,6 +30,8 @@ const Login = () => {
         ...prev,
         username: location.state.username
       }));
+    }
+    if (location.state?.message) {
       setMessage(location.state.message);
     }
   }, [location]);
