@@ -1,128 +1,300 @@
-import React from 'react';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { FaChessKing, FaUser, FaCircle, FaClock, FaHourglassHalf } from 'react-icons/fa';
+import TimeAgo from 'timeago-react';
 
-
-
+/**
+ * JoinPage Component
+ * Handles joining existing chess games and displays available games
+ */
 const JoinPage = () => {
-
-    const [roomid, setRoomid] = React.useState("");
-    const [games, setGames] = React.useState([{ game_id: '12345', player1: 'nishan' }]);
-
+    /****************************
+     * State & Hooks
+     ****************************/
+    const isDark = useSelector((state) => state.theme.isDark);
+    const [roomid, setRoomid] = useState("");
+    const [games, setGames] = useState([]);
     const navigate = useNavigate();
+    const currentUser = useSelector((state) => state.user.name);
 
-
+    // WebSocket refs
     const join_socket = useRef(null);
     const games_socket = useRef(null);
 
+    /****************************
+     * WebSocket Setup - Games List
+     ****************************/
     useEffect(() => {
-        const URL = import.meta.env.VITE_BACKEND_CHESS_WS_API + "/chess/?token=" + localStorage.getItem("token");
+        const URL = `${import.meta.env.VITE_BACKEND_CHESS_WS_API}/chess/?token=${localStorage.getItem("token")}`;
         games_socket.current = new WebSocket(URL);
 
+        // WebSocket event handlers
         games_socket.current.onopen = () => {
-            console.log("WebSocket connection established");
+            console.log("Games WebSocket connected");
         };
+
         games_socket.current.onmessage = (event) => {
             const message = JSON.parse(event.data);
-            if (message.message.type === "only_me" || message.message.info === 'connected') {
-                console.log("games : ", message.games);
-                setGames(message.games);
-            }
-            if (message.message.type === 'all' && message.message.info === 'available') {
-                console.log("game: ", message.game);
-                setGames((prev) => [...prev, message.game]);
-            }
-            if (message.message.type === 'all' && message.message.info === 'unavailable') {
-                console.log("game_id: ", message.game.game_id);
-                setGames(prev => prev.filter(g => g.game_id !== message.game.game_id));
-            }
-            console.log("Received response:", message);
+            console.log("Recieved Game list: message: ", message);
+            handleGamesWebSocketMessage(message);
         };
 
         games_socket.current.onclose = () => {
-            console.log("WebSocket connection closed");
+            console.log("Games WebSocket closed");
         };
 
         games_socket.current.onerror = (error) => {
-            console.error("WebSocket error:", error);
+            console.error("Games WebSocket error:", error);
         };
+
+        return () => games_socket.current.close();
     }, []);
 
-    const handleClick = () => {
+    /****************************
+     * Message Handlers
+     ****************************/
+    const handleGamesWebSocketMessage = (message) => {
+        const { type, info } = message.message;
+
+        // Handle initial games list
+        if (type === "only_me" || info === 'connected') {
+            setGames(filterGames(message.games));
+        }
+        // Handle new available game
+        else if (type === 'all' && info === 'available') {
+            setGames(prev => filterGames([...prev, message.game]));
+        }
+        // Handle game becoming unavailable
+        else if (type === 'all' && info === 'unavailable') {
+            setGames(prev => prev.filter(g => g.game_id !== message.game.game_id));
+        }
+    };
+
+    /****************************
+     * Game Join Handler
+     ****************************/
+    const handleJoinGame = () => {
         const BACKEND_WS_API = import.meta.env.VITE_BACKEND_CHESS_WS_API;
-        join_socket.current = new WebSocket(BACKEND_WS_API + "/chess/" + roomid + "/?token=" + localStorage.getItem("token"));
+        const URL = `${BACKEND_WS_API}/chess/${roomid}/?token=${localStorage.getItem("token")}`;
+        
+        join_socket.current = new WebSocket(URL);
 
         join_socket.current.onopen = () => {
-            console.log("WebSocket connection established");
+            console.log("Join WebSocket connected");
             join_socket.current.send(JSON.stringify({ action: "join_game" }));
         };
 
         join_socket.current.onmessage = (event) => {
             const message = JSON.parse(event.data);
-            if (message.message === "joined game" || message.message === "reconnected") {
-                // navigate(`/online/${roomid}`);
-                console.log("Joined resonpse: ", message);
-
+            if (message.message.info === "joined" || message.message.info === "reconnected") {
+                console.log("joined or reconnected: join_socket:: ", message);
+                navigate(`/online/${roomid}`, { state: { isActive: true } });
+                join_socket.current.close();
             }
-            console.log("Received response:", message);
-            // Handle incoming messages
+            console.log("join_socket message recieved: ", message);
         };
 
-        join_socket.current.onclose = () => {
-            console.log("WebSocket connection closed");
+        join_socket.current.onclose = () => console.log("Join WebSocket closed");
+        join_socket.current.onerror = (error) => console.error("Join WebSocket error:", error);
+    };
+
+    /****************************
+     * Helper Functions
+     ****************************/
+    const getGameStatusInfo = (game) => {
+        if (game.player2) {
+            if (game.player1 === currentUser || game.player2 === currentUser) {
+                return {
+                    status: 'reconnect',
+                    color: 'text-yellow-600',
+                    text: 'Reconnect'
+                };
+            }
+        }
+        return {
+            status: 'available',
+            color: 'text-green-600',
+            text: 'Available'
         };
+    };
 
-        join_socket.current.onerror = (error) => {
-            console.error("WebSocket error:", error);
-        };
-        navigate('/online/' + roomid, { state: { isActive: true } });
-    }
+    const filterGames = (games) => {
+        return games.filter(game => {
+            if (!game.player2) return true; // Show all available games
+            // Show reconnect games only if current user is player1 or player2
+            // console.log(`filter games:: p1: ${game.player1}  p2: ${game.player2}   current_user: ${currentUser}`)
+            return game.player1 === currentUser || game.player2 === currentUser;
+        });
+    };
 
-
+    /****************************
+     * Render Component
+     ****************************/
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
-                <h1 className="text-2xl font-bold mb-6 text-center">Join Game</h1>
-                <form onSubmit={(e) => { e.preventDefault(); }}>
+        <div className={`min-h-screen flex items-center justify-center p-4 
+            ${isDark ? 'bg-gray-900' : 'bg-gray-100'}`}>
+            <div className={`p-8 rounded-lg shadow-xl w-full max-w-md 
+                ${isDark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
+                
+                {/* Header Section */}
+                <div className="flex items-center justify-center mb-8">
+                    <FaChessKing className={`text-4xl mr-3 
+                        ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                    <h1 className="text-3xl font-bold">Join Game</h1>
+                </div>
+
+                {/* Game ID Form */}
+                <form onSubmit={(e) => e.preventDefault()} className="mb-8">
                     <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="gameId">
+                        <label className={`block text-sm font-bold mb-2 
+                            ${isDark ? 'text-gray-300' : 'text-gray-700'}`}
+                            htmlFor="gameId">
                             Game ID
                         </label>
                         <input
                             type="text"
                             id="gameId"
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                            placeholder="Enter Game ID"
                             value={roomid}
                             onChange={(e) => setRoomid(e.target.value)}
+                            placeholder="Enter Game ID"
+                            className={`w-full px-4 py-3 rounded-lg transition-colors
+                                ${isDark 
+                                    ? 'bg-gray-700 text-white border-gray-600 focus:border-blue-500'
+                                    : 'bg-white text-gray-800 border-gray-300 focus:border-blue-500'}
+                                border-2 focus:outline-none`}
                         />
                     </div>
-                    <div className="flex items-center justify-between">
-                        <button
-                            // type="submit"
-                            onClick={handleClick}
-                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                        >
-                            Join Game
-                        </button>
-                    </div>
-                </form>
-                <br /><br />
-                <h3>Available games: </h3>
-                {games.map((game, index) => (
-                    <div
-                        key={index}
-                        className="mt-2 p-3 border rounded hover:bg-gray-50 cursor-pointer flex justify-between items-center"
-                        onClick={() => setRoomid(game.game_id)}
+                    <button
+                        onClick={handleJoinGame}
+                        className={`w-full py-3 px-4 rounded-lg font-bold transition-all
+                            transform hover:scale-105 duration-200
+                            ${isDark ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} 
+                            text-white shadow-lg hover:shadow-xl`}
                     >
-                        <div>
-                            <span className="font-medium">Room: {game.game_id}</span>
-                            <p className="text-sm text-gray-600">Host: {game.player1}</p>
-                            <p className="text-sm text-gray-600">Host Color: {game.player1_color}</p>
-                        </div>
-                        <span className="text-sm text-green-600">Available</span>
-                    </div>
+                        Join Game
+                    </button>
+                </form>
+
+                {/* Available Games List */}
+                <GamesList 
+                    games={games} 
+                    isDark={isDark} 
+                    setRoomid={setRoomid} 
+                    getGameStatusInfo={getGameStatusInfo}
+                />
+            </div>
+        </div>
+    );
+};
+
+/**
+ * GamesList Component
+ * Displays list of available games
+ */
+const GamesList = ({ games, isDark, setRoomid, getGameStatusInfo }) => {
+    // Sort games by start time (newest first)
+    const sortedGames = [...games].sort((a, b) => {
+        return new Date(b.clock.started) - new Date(a.clock.started);
+    });
+
+    return (
+        <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-6`}>
+            <h3 className={`text-xl font-bold mb-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Available Games
+            </h3>
+            <div className="space-y-3">
+                {sortedGames.map((game, index) => (
+                    <GameCard 
+                        key={index}
+                        game={game}
+                        isDark={isDark}
+                        onClick={() => setRoomid(game.game_id)}
+                        statusInfo={getGameStatusInfo(game)}
+                    />
                 ))}
+            </div>
+        </div>
+    );
+};
+
+/**
+ * GameCard Component
+ * Individual game card in the list
+ */
+const GameCard = ({ game, isDark, onClick, statusInfo }) => {
+
+     // Add formatTime helper function
+     const formatTime = (minutes) => {
+        if (minutes >= 60) {
+            return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+        }
+        return `${minutes}m`;
+    };
+    
+    return (
+        <div
+            onClick={onClick}
+            className={`p-4 rounded-lg cursor-pointer transition-all
+                transform hover:scale-101 duration-200
+                ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'}`}
+        >
+            <div className="flex flex-col space-y-3">
+                {/* Header with players and status */}
+                <div className="flex justify-between items-start">
+                    <div className="flex items-center">
+                        <FaUser className="mr-2" />
+                        <span className="font-medium">
+                            {game.player1}
+                            {game.player2 && ` vs ${game.player2}`}
+                        </span>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium
+                        ${statusInfo.color} ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+                        {statusInfo.text}
+                    </span>
+                </div>
+
+                {/* Game details */}
+                <div className={`text-sm grid grid-cols-2 gap-2
+                    ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {/* Left column */}
+                    <div className="space-y-1">
+                        <div className="flex items-center">
+                            <FaClock className="mr-2" />
+                            {formatTime(game.clock.base)} + {game.clock.increment}s
+                        </div>
+                        <div className="flex items-center">
+                            <FaCircle className={`mr-2 ${
+                                game.player1_color === 'white' ? 'text-white border border-gray-400' : 'text-gray-900'
+                            }`} />
+                            {game.player2 ? 
+                                `${game.player1_color} vs ${game.player2_color}` :
+                                `Playing as ${game.player1_color}`
+                            }
+                        </div>
+                    </div>
+
+                    {/* Right column */}
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-end">
+                            <span className="font-medium">{game.format}</span>
+                        </div>
+                        <div className="flex items-center justify-end">
+                            <FaHourglassHalf className="mr-2" />
+                            <TimeAgo
+                                datetime={game.clock.started}
+                                opts={{ minInterval: 10 }}
+                                className={isDark ? 'text-gray-400' : 'text-gray-600'}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Game ID */}
+                <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    ID: {game.game_id}
+                </div>
             </div>
         </div>
     );

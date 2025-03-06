@@ -72,7 +72,8 @@ export default function Create() {
                 action,
                 base,
                 increment,
-                color
+                color,
+                format: timeFormat
             }));
         }
     };
