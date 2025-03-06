@@ -4,6 +4,17 @@ import { useSelector } from 'react-redux';
 import { FaChessKing, FaUser, FaCircle, FaClock, FaHourglassHalf } from 'react-icons/fa';
 import TimeAgo from 'timeago-react';
 
+
+
+ // Add formatTime helper function
+ const formatTime = (minutes) => {
+    if (minutes >= 60) {
+        return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+    }
+    return `${minutes}m`;
+};
+
+
 /**
  * JoinPage Component
  * Handles joining existing chess games and displays available games
@@ -15,6 +26,7 @@ const JoinPage = () => {
     const isDark = useSelector((state) => state.theme.isDark);
     const [roomid, setRoomid] = useState("");
     const [games, setGames] = useState([]);
+    const [selectedGame, setSelectedGame] = useState(null);
     const navigate = useNavigate();
     const currentUser = useSelector((state) => state.user.name);
 
@@ -144,6 +156,32 @@ const JoinPage = () => {
                     <h1 className="text-3xl font-bold">Join Game</h1>
                 </div>
 
+                {/* Selected Game Info */}
+                {selectedGame && (
+                    <div className={`mb-8 p-4 rounded-lg border-2 
+                        ${isDark ? 'border-blue-500 bg-gray-700' : 'border-blue-400 bg-blue-50'}`}>
+                        <h3 className="text-lg font-semibold mb-2">Selected Game</h3>
+                        <div className="space-y-2 text-sm">
+                            <p><span className="font-medium">Format:</span> {selectedGame.format}</p>
+                            <p><span className="font-medium">Time Control:</span> {formatTime(selectedGame.clock.base)} + {selectedGame.clock.increment}s</p>
+                            <p><span className="font-medium">Created by:</span> {selectedGame.player1}</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* How to Join Section */}
+                <div className={`mb-8 p-4 rounded-lg 
+                    ${isDark ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                    <h3 className="text-lg font-semibold mb-2">How to Join</h3>
+                    <ol className={`list-decimal list-inside space-y-2 text-sm
+                        ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                        <li>Click on an available game from the list below</li>
+                        <li>The game ID will be automatically filled</li>
+                        <li>Or manually type the game id</li>
+                        <li>Click the "Join Game" button to start playing</li>
+                    </ol>
+                </div>
+
                 {/* Game ID Form */}
                 <form onSubmit={(e) => e.preventDefault()} className="mb-8">
                     <div className="mb-4">
@@ -180,7 +218,12 @@ const JoinPage = () => {
                 <GamesList 
                     games={games} 
                     isDark={isDark} 
-                    setRoomid={setRoomid} 
+                    setRoomid={setRoomid}
+                    selectedGameId={selectedGame?.game_id}
+                    onGameSelect={(game) => {
+                        setSelectedGame(game);
+                        setRoomid(game.game_id);
+                    }}
                     getGameStatusInfo={getGameStatusInfo}
                 />
             </div>
@@ -192,7 +235,13 @@ const JoinPage = () => {
  * GamesList Component
  * Displays list of available games
  */
-const GamesList = ({ games, isDark, setRoomid, getGameStatusInfo }) => {
+const GamesList = ({ 
+    games, 
+    isDark, 
+    selectedGameId, 
+    onGameSelect, 
+    getGameStatusInfo 
+}) => {
     // Sort games by start time (newest first)
     const sortedGames = [...games].sort((a, b) => {
         return new Date(b.clock.started) - new Date(a.clock.started);
@@ -201,7 +250,7 @@ const GamesList = ({ games, isDark, setRoomid, getGameStatusInfo }) => {
     return (
         <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-6`}>
             <h3 className={`text-xl font-bold mb-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                Available Games
+                Available Games ({games.length})
             </h3>
             <div className="space-y-3">
                 {sortedGames.map((game, index) => (
@@ -209,7 +258,8 @@ const GamesList = ({ games, isDark, setRoomid, getGameStatusInfo }) => {
                         key={index}
                         game={game}
                         isDark={isDark}
-                        onClick={() => setRoomid(game.game_id)}
+                        isSelected={game.game_id === selectedGameId}
+                        onClick={() => onGameSelect(game)}
                         statusInfo={getGameStatusInfo(game)}
                     />
                 ))}
@@ -222,22 +272,18 @@ const GamesList = ({ games, isDark, setRoomid, getGameStatusInfo }) => {
  * GameCard Component
  * Individual game card in the list
  */
-const GameCard = ({ game, isDark, onClick, statusInfo }) => {
-
-     // Add formatTime helper function
-     const formatTime = (minutes) => {
-        if (minutes >= 60) {
-            return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-        }
-        return `${minutes}m`;
-    };
+const GameCard = ({ game, isDark, isSelected, onClick, statusInfo }) => {
     
     return (
         <div
             onClick={onClick}
             className={`p-4 rounded-lg cursor-pointer transition-all
-                transform hover:scale-101 duration-200
-                ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'}`}
+                transform hover:scale-101 duration-200 relative
+                ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'}
+                ${isSelected ? isDark 
+                    ? 'ring-2 ring-blue-500 ring-opacity-100' 
+                    : 'ring-2 ring-blue-400 ring-opacity-100'
+                    : ''}`}
         >
             <div className="flex flex-col space-y-3">
                 {/* Header with players and status */}
@@ -266,7 +312,7 @@ const GameCard = ({ game, isDark, onClick, statusInfo }) => {
                         </div>
                         <div className="flex items-center">
                             <FaCircle className={`mr-2 ${
-                                game.player1_color === 'white' ? 'text-white border border-gray-400' : 'text-gray-900'
+                                game.player1_color === 'white' ? 'text-gray-300' : 'text-gray-900'
                             }`} />
                             {game.player2 ? 
                                 `${game.player1_color} vs ${game.player2_color}` :
@@ -295,6 +341,14 @@ const GameCard = ({ game, isDark, onClick, statusInfo }) => {
                 <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                     ID: {game.game_id}
                 </div>
+
+                {/* Selection indicator */}
+                {isSelected && (
+                    <div className={`absolute -right-1 -top-1 w-4 h-4 rounded-full
+                        ${isDark ? 'bg-blue-500' : 'bg-blue-400'}`}>
+                        <div className="w-2 h-2 bg-white rounded-full m-1" />
+                    </div>
+                )}
             </div>
         </div>
     );
