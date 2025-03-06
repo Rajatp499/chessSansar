@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux"; // Add this import
 
@@ -12,14 +12,27 @@ const Login = () => {
    * Hooks & State Management
    ****************************/
   const navigate = useNavigate();
+  const location = useLocation();
   const isDark = useSelector((state) => state.theme.isDark);
   
   // Form state
-  const [loginData, setloginData] = useState({
+  const [loginData, setLoginData] = useState({
     username: "",
     password: "",
   });
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    // Check for pre-filled credentials
+    if (location.state?.username) {
+      setLoginData(prev => ({
+        ...prev,
+        username: location.state.username
+      }));
+      setMessage(location.state.message);
+    }
+  }, [location]);
 
   /****************************
    * Event Handlers
@@ -29,7 +42,7 @@ const Login = () => {
    * @param {Event} e - Input change event
    */
   const handleChange = (e) => {
-    setloginData({ ...loginData, [e.target.name]: e.target.value });
+    setLoginData({ ...loginData, [e.target.name]: e.target.value });
     setError(""); // Clear error when user starts typing
   };
 
@@ -93,6 +106,13 @@ const Login = () => {
         {error && (
           <div className="mb-4 p-3 rounded bg-red-100 border border-red-400 text-red-700">
             {error}
+          </div>
+        )}
+
+        {/* Message */}
+        {message && (
+          <div className="mb-4 p-3 rounded bg-blue-100 border border-blue-400 text-blue-700">
+            {message}
           </div>
         )}
 
