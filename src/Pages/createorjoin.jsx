@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Chessboard } from "react-chessboard";
@@ -6,16 +6,41 @@ import { Chessboard } from "react-chessboard";
 const CreateOrJoin = () => {
     const navigate = useNavigate();
     const isDark = useSelector((state) => state.theme.isDark);
+    
+    /****************************
+     * Authentication Check
+     ****************************/
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login', {
+                state: { 
+                    message: "Please login to play online chess",
+                    redirectTo: '/connect'  // Redirect back to this page after login
+                }
+            });
+        }
+    }, [navigate]);
 
     /****************************
      * Navigation Handlers
      ****************************/
     const handleCreateGame = () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
         const randomWord = Math.random().toString(36).substring(2, 18);
         navigate(`/create/${randomWord}`);
     };
 
     const handleJoinGame = () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            navigate('/login');
+            return;
+        }
         navigate("/join");
     };
 

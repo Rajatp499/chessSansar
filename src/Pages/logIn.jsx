@@ -77,9 +77,15 @@ const Login = () => {
         throw new Error(data.message || "Invalid credentials");
       }
 
-      // Store token and redirect
+      // Store token
       localStorage.setItem("token", data.auth_token);
-      navigate("/");
+      
+      // Redirect to the original page or home
+      if (location.state?.redirectTo) {
+        navigate(location.state.redirectTo);
+      } else {
+        navigate("/");
+      }
       
     } catch (err) {
       console.error("Login Error:", err);
