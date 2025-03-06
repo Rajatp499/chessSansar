@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { Chess } from 'chess.js';
 import GameBoard from "../components/online/GameBoard";
 import PlayerInfo from "../components/online/PlayerInfo";
+import GameOverModal from "../components/online/GameOverModal";
 import Move from "../components/move";
 import useWebSocket from "../hooks/useWebSocket";
 import { handleWebSocketMessage } from "../utils/websocketHandlers";
@@ -44,6 +45,8 @@ export default function Online() {
   /****************************
    * UI State Management
    ****************************/
+  const [gameOver, setGameOver] = useState(false);
+  const [gameResult, setGameResult] = useState(null);
   const [selectedPiece, setSelectedPiece] = useState(null);
   const [moveSquares, setMoveSquares] = useState({});
   const [boardWidth, setBoardWidth] = useState(560);
@@ -124,6 +127,20 @@ export default function Online() {
       try {
         const message = JSON.parse(event.data);
         console.log("WS message received: ", message);
+
+        // // Handle game over states
+        // if (message.message.info === 'resigned') {
+        //   setGameOver(true);
+        //   setGameResult({
+        //     status: message.game.status,
+        //     winner: message.game.winner,
+        //     color: message.game.color,
+        //     over_type: message.game.over_type
+        //   });
+        //   return;
+        // }
+
+        // handle other messages
         handleWebSocketMessage(
           message,
           resetGame,
@@ -135,7 +152,8 @@ export default function Online() {
           setPlayer1,
           setPlayer2,
           setUserColor,
-          setLastMove
+          setGameOver,
+          setGameResult
         );
       } catch (error) {
         console.error("Error handling websocket message:", error);
@@ -208,11 +226,22 @@ export default function Online() {
   const handleDrawReq = () => handleGameAction("draw_request");
   const handlePause = () => handleGameAction("pause_request");
 
+  useEffect(() => {
+    console.log("game over: ", gameOver);
+    console.log("game over result: ", gameResult);
+  }, [gameOver, gameResult]);
+
   /****************************
    * Render Component
    ****************************/
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
+      
+      {/* GameOverModal */}
+      {gameOver && gameResult && (
+        <GameOverModal result={gameResult} isDark={isDark} />
+      )}
+
       <div className="p-4 flex justify-evenly h-screen">
         {/* Game Board Section */}
         <div className="flex h-fit p-2 flex-wrap">
@@ -222,15 +251,16 @@ export default function Online() {
               boardWidth={boardWidth}
               gamePosition={gamePosition}
               isDark={isDark}
-              drop={drop}
-              handleSquareClick={handleSquareClick}
-              getMoveOptions={handleSquareClick}
+              drop={!gameOver ? drop : () => false}
+              handleSquareClick={!gameOver ? handleSquareClick : () => false}
+              getMoveOptions={!gameOver ? handleSquareClick : () => false}
               moveSquares={moveSquares}
               checkSquare={checkSquare}
               lastMove={lastMove}
               selectedPiece={selectedPiece}
               setSelectedPiece={setSelectedPiece}
               setMoveSquares={setMoveSquares}
+              gameOver={gameOver}
             />
           </div>
           
@@ -254,13 +284,13 @@ export default function Online() {
         {/* Move History Section */}
         {game && (
           <Move 
-            moves={game.history()} 
-            onResign={handleResign} 
+            moves={game.history()}
             onAbort={handleAbort} 
-            onDrawReq={handleDrawReq} 
+            onResign={!gameOver ? handleResign : undefined} 
+            onDrawReq={!gameOver ? handleDrawReq : undefined} 
             onGoToMove={handleGoToMove}
             isDark={isDark}
-            onPause={handlePause}
+            onPause={!gameOver ? handlePause : undefined}
           />
         )}
       </div>

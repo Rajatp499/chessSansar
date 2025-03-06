@@ -110,6 +110,20 @@ const handleMove = (message, userName, setTurn, makeMove) => {
   }
 };
 
+/* Handles resigned game */
+const handleGameEnded = (message) => {
+  const game = message.game;
+  const winner = game.winner === 'player1' ? game.player1 : game.player2;
+  const color = game.winner === 'player1' ? game.player1_color: game.player2_color;
+
+  return {
+    status: message.game.status,
+    winner,
+    color, 
+    over_type: message.game.over_type
+  };
+};
+
 /****************************
  * Main Message Handler
  ****************************/
@@ -128,7 +142,9 @@ export const handleWebSocketMessage = (
   setUser,
   setPlayer1,
   setPlayer2,
-  setUserColor
+  setUserColor,
+  setGameOver,
+  setGameResult
 ) => {
   const { info, type } = message.message;
 
@@ -151,13 +167,25 @@ export const handleWebSocketMessage = (
       handleJoinedOrReconnected(message, userName, setTurn, setPlayer1, setPlayer2, setUserColor);
       if (info === "reconnected") {
         handleReconnectedWithMoves(message, resetGame, makeMove);
+        if (message.game.status === 'ended') {
+          setGameOver(true);
+          const result = handleGameEnded(message);
+          setGameResult(result);
+        }
       }
       break;
     case "moved":
       handleMove(message, userName, setTurn, makeMove);
+      if (message.game.status === 'ended') {
+        setGameOver(true);
+        const result = handleGameEnded(message);
+        setGameResult(result);
+      }
       break;
     case "resigned":
-      console.log('Game ended:', message);
+      const result = handleGameEnded(message);
+      setGameOver(true);
+      setGameResult(result);
       break;
     default:
       console.log("Unhandled message info:", info);
