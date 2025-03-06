@@ -23,16 +23,23 @@ const JoinPage = () => {
     /****************************
      * State & Hooks
      ****************************/
+    const [error, setError] = useState("");
     const isDark = useSelector((state) => state.theme.isDark);
     const [roomid, setRoomid] = useState("");
     const [games, setGames] = useState([]);
     const [selectedGame, setSelectedGame] = useState(null);
     const navigate = useNavigate();
     const currentUser = useSelector((state) => state.user.name);
+    
 
     // WebSocket refs
     const join_socket = useRef(null);
     const games_socket = useRef(null);
+
+    // reset error when some games are select from game list
+    useEffect(() => {
+        setError('');
+    }, [selectedGame]);
 
     /****************************
      * WebSocket Setup - Games List
@@ -87,6 +94,11 @@ const JoinPage = () => {
      * Game Join Handler
      ****************************/
     const handleJoinGame = () => {
+        if (!roomid) {
+            setError('Please input valid game ID');
+            return;
+        }
+
         const BACKEND_WS_API = import.meta.env.VITE_BACKEND_CHESS_WS_API;
         const URL = `${BACKEND_WS_API}/chess/${roomid}/?token=${localStorage.getItem("token")}`;
         
@@ -103,6 +115,9 @@ const JoinPage = () => {
                 console.log("joined or reconnected: join_socket:: ", message);
                 navigate(`/online/${roomid}`, { state: { isActive: true } });
                 join_socket.current.close();
+            }
+            if (message.message.info === 'invalid') {
+                setError(message.message.error);
             }
             console.log("join_socket message recieved: ", message);
         };
@@ -146,7 +161,7 @@ const JoinPage = () => {
     return (
         <div className={`min-h-screen flex items-center justify-center p-4 
             ${isDark ? 'bg-gray-900' : 'bg-gray-100'}`}>
-            <div className={`p-8 rounded-lg shadow-xl w-full max-w-md 
+            <div className={`p-8 rounded-lg shadow-xl w-full mx-12 my-6 
                 ${isDark ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
                 
                 {/* Header Section */}
@@ -177,10 +192,13 @@ const JoinPage = () => {
                         ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                         <li>Click on an available game from the list below</li>
                         <li>The game ID will be automatically filled</li>
-                        <li>Or manually type the game id</li>
+                        <li>Or manually type the game ID</li>
                         <li>Click the "Join Game" button to start playing</li>
                     </ol>
                 </div>
+                
+                {/* Show error if invalid game ID is submitted */}
+                {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
                 {/* Game ID Form */}
                 <form onSubmit={(e) => e.preventDefault()} className="mb-8">
@@ -252,7 +270,7 @@ const GamesList = ({
             <h3 className={`text-xl font-bold mb-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Available Games ({games.length})
             </h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {sortedGames.map((game, index) => (
                     <GameCard 
                         key={index}
