@@ -228,6 +228,7 @@ export default function Online() {
               moveSquares={moveSquares}
               checkSquare={checkSquare}
               lastMove={lastMove}
+              selectedPiece={selectedPiece}
               setSelectedPiece={setSelectedPiece}
               setMoveSquares={setMoveSquares}
             />
