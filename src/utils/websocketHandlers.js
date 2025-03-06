@@ -1,16 +1,39 @@
+/****************************
+ * User State Handlers
+ ****************************/
+
+/**
+ * Handle initial connection and set user data
+ * @param {Object} message - WebSocket message containing user data
+ * @param {Function} setUser - Function to update user state
+ */
 const handleConnected = (message, setUser) => {
   setUser(message.message.player.user);
 };
 
+/**
+ * Update user color based on player assignment
+ * @param {string} p1 - Player 1 username
+ * @param {string} p2 - Player 2 username
+ * @param {string} p1Col - Player 1 color
+ * @param {string} p2Col - Player 2 color
+ * @param {string} userName - Current user's name
+ * @param {Function} setUserColor - Function to update user's color
+ */
 const updateUserState = (p1, p2, p1Col, p2Col, userName, setUserColor) => {
-  if (p1 === userName) {
-    setUserColor(p1Col.substr(0, 1));
-  } else {
-    setUserColor(p2Col.substr(0, 1));
-  }
+  setUserColor(p1 === userName ? p1Col.substr(0, 1) : p2Col.substr(0, 1));
 };
 
+/****************************
+ * Game State Handlers
+ ****************************/
+
+/**
+ * Handle game join or reconnection events
+ * Updates player information and turn state
+ */
 const handleJoinedOrReconnected = (message, userName, setTurn, setPlayer1, setPlayer2, setUserColor) => {
+  // Update player colors
   updateUserState(
     message.game.player1,
     message.game.player2,
@@ -20,57 +43,81 @@ const handleJoinedOrReconnected = (message, userName, setTurn, setPlayer1, setPl
     setUserColor
   );
 
+  // Set player information
   setPlayer1(message.game.player1);
   setPlayer2(message.game.player2);
 
+  // Update turn state
   const current_turn = message.game.current_turn;
-  setTurn(
-    (message.game.player1 === userName && current_turn === 'player1') ||
-    (message.game.player2 === userName && current_turn === 'player2')
-  );
+  const isUserTurn = (message.game.player1 === userName && current_turn === 'player1') ||
+                    (message.game.player2 === userName && current_turn === 'player2');
+  setTurn(isUserTurn);
 };
 
+/**
+ * Handle game reconnection with existing moves
+ * Replays all moves in correct order
+ */
 const handleReconnectedWithMoves = (message, resetGame, makeMove) => {
   try {
-    const r_moves = message.game.moves;
-    
-    const sortedMoves = r_moves.sort((a, b) => 
+    // Sort moves by timestamp
+    const sortedMoves = message.game.moves.sort((a, b) => 
       new Date(a.played_at) - new Date(b.played_at)
     );
 
+    // Reset and replay moves
     resetGame();
     sortedMoves.forEach(moveObj => {
-        const from =  moveObj.move.substring(0, 2);
-        const to = moveObj.move.substring(2, 4);
-        const promotion = moveObj.move.substring(4, 5).toLowerCase() || 'q';
-        makeMove(from, to, promotion);
+      const [from, to] = [
+        moveObj.move.substring(0, 2),
+        moveObj.move.substring(2, 4)
+      ];
+      const promotion = moveObj.move.substring(4, 5).toLowerCase() || 'q';
+      makeMove(from, to, promotion);
     });
   } catch (e) {
     console.error("Error in reconnection:", e);
   }
 };
 
+/****************************
+ * Move Handlers
+ ****************************/
+
+/**
+ * Handle move messages and update game state
+ * Only applies moves from opponent
+ */
 const handleMove = (message, userName, setTurn, makeMove) => {
+  // Update turn state
   const current_turn = message.game.current_turn;
-  setTurn(
-    (message.game.player1 === userName && current_turn === 'player1') ||
-    (message.game.player2 === userName && current_turn === 'player2')
-  );
+  const isUserTurn = (message.game.player1 === userName && current_turn === 'player1') ||
+                    (message.game.player2 === userName && current_turn === 'player2');
+  setTurn(isUserTurn);
 
+  // Apply opponent's move
   if (message.message.player.user !== userName) {
-    const r_move = message.game.move;
-    const from = r_move.substring(0, 2);
-    const to = r_move.substring(2, 4);
-    const promotion = r_move.substring(4, 5).toLowerCase() || 'q';
-
+    const move = message.game.move;
     try {
-        makeMove(from, to, promotion);
+      makeMove(
+        move.substring(0, 2),    // from
+        move.substring(2, 4),    // to
+        move.substring(4, 5).toLowerCase() || 'q'  // promotion
+      );
     } catch (e) {
       console.error("Error making opponent move:", e);
     }
   }
 };
 
+/****************************
+ * Main Message Handler
+ ****************************/
+
+/**
+ * Main WebSocket message handler
+ * Routes messages to appropriate handlers based on type and info
+ */
 export const handleWebSocketMessage = (
   message,
   resetGame,
@@ -83,40 +130,35 @@ export const handleWebSocketMessage = (
   setPlayer2,
   setUserColor
 ) => {
-  const info = message.message.info;
-  const type = message.message.type;
+  const { info, type } = message.message;
 
+  // Handle invalid move
   if (type === 'only_me' && info === 'invalid') {
     undoMove();
     return;
   }
 
-  if (type !== "both" && info !== "connected") {
-    return;
-  }
+  // Filter messages
+  if (type !== "both" && info !== "connected") return;
 
+  // Route message to appropriate handler
   switch (info) {
     case "connected":
       handleConnected(message, setUser);
       break;
-
     case "joined":
-      handleJoinedOrReconnected(message, userName, setTurn, setPlayer1, setPlayer2, setUserColor);
-      break;
-
     case "reconnected":
       handleJoinedOrReconnected(message, userName, setTurn, setPlayer1, setPlayer2, setUserColor);
-      handleReconnectedWithMoves(message, resetGame, makeMove);
+      if (info === "reconnected") {
+        handleReconnectedWithMoves(message, resetGame, makeMove);
+      }
       break;
-
     case "moved":
       handleMove(message, userName, setTurn, makeMove);
       break;
-
     case "resigned":
       console.log('Game ended:', message);
       break;
-
     default:
       console.log("Unhandled message info:", info);
   }

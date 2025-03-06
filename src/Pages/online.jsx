@@ -14,7 +14,9 @@ export default function Online() {
   const isDark = useSelector((state) => state.theme.isDark);
   const { roomid } = useParams();
 
-  // Game state from hook
+  /****************************
+   * Game State Management
+   ****************************/
   const {
     game,
     resetGame,
@@ -26,25 +28,34 @@ export default function Online() {
     undoMove,
     getMoves,
     updatePosition,
-    isGameOver,
     getGameStatus
   } = useChessGame();
 
-  // Player and UI state
+  /****************************
+   * Player State Management
+   ****************************/
   const [user, setUser] = useState(null);
   const [turn, setTurn] = useState(false);  
   const [userName] = useState(localStorage.getItem("username"));
   const [player1, setPlayer1] = useState(null);
   const [player2, setPlayer2] = useState(null);
   const [userColor, setUserColor] = useState("white");
+
+  /****************************
+   * UI State Management
+   ****************************/
   const [selectedPiece, setSelectedPiece] = useState(null);
   const [moveSquares, setMoveSquares] = useState({});
-  const [boardWidth] = useState(560);
+  const [boardWidth, setBoardWidth] = useState(560);
 
-  // Square click handler
-  const handleSquareClick = (square) => {
+  /****************************
+   * Move Handlers
+   ****************************/
+  // Handle square click and highlight valid moves
+  const handleSquareClick = useCallback((square) => {
     if (!turn) return;
 
+    // If a piece is selected and the clicked square is a valid move
     if (selectedPiece && moveSquares[square]) {
       const moveResult = drop(selectedPiece, square);
       if (moveResult) {
@@ -54,6 +65,7 @@ export default function Online() {
       }
     }
 
+    // Show valid moves for selected piece
     setSelectedPiece(square);
     const moves = getMoves(square);
     const newMoveSquares = {};
@@ -63,10 +75,10 @@ export default function Online() {
       };
     });
     setMoveSquares(newMoveSquares);
-  };
+  }, [turn, selectedPiece, moveSquares, getMoves, isDark]);
 
-  // Drop handler
-  const drop = (sourceSquare, targetSquare) => {
+  // Handle piece movement
+  const drop = useCallback((sourceSquare, targetSquare) => {
     if (!turn) return false;
     
     const moveSuccess = makeMove(sourceSquare, targetSquare);
@@ -78,20 +90,18 @@ export default function Online() {
       return true;
     }
     return false;
-  };
+  }, [turn, makeMove]);
 
-  // Add handleGoToMove function
+  /****************************
+   * Move History Navigation
+   ****************************/
   const handleGoToMove = useCallback((moveIndex) => {
     if (!game) return;
     
     try {
-      // Create a new game instance
       const tempGame = new Chess();
-      
-      // Get moves up to the selected index
       const moves = game.history({ verbose: true }).slice(0, moveIndex + 1);
       
-      // Apply moves
       moves.forEach(move => {
         tempGame.move({
           from: move.from,
@@ -100,14 +110,15 @@ export default function Online() {
         });
       });
       
-      // Update position
       updatePosition(tempGame.fen());
     } catch (error) {
       console.error('Error navigating to move:', error);
     }
   }, [game, updatePosition]);
 
-  // WebSocket callbacks with error handling
+  /****************************
+   * WebSocket Configuration
+   ****************************/
   const websocketCallbacks = {
     onMessage: (event) => {
       try {
@@ -138,7 +149,29 @@ export default function Online() {
     onError: (error) => console.error("WebSocket error:", error)
   };
 
-  // Page refresh handling
+  const socket = useWebSocket({
+    url: `${import.meta.env.VITE_BACKEND_CHESS_WS_API}/chess/${roomid}/?token=${localStorage.getItem("token")}`,
+    ...websocketCallbacks
+  });
+
+  /****************************
+   * Window Event Handlers
+   ****************************/
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const maxWidth = Math.min(screenWidth * 0.5, screenHeight * 0.8);
+      setBoardWidth(maxWidth);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Handle page refresh/unload
   useEffect(() => {
     const handleBeforeUnload = () => {
       localStorage.setItem('gameRoom', roomid);
@@ -159,48 +192,29 @@ export default function Online() {
     };
   }, [roomid]);
 
-  // Initialize WebSocket
-  const socket = useWebSocket({
-    url: `${import.meta.env.VITE_BACKEND_CHESS_WS_API}/chess/${roomid}/?token=${localStorage.getItem("token")}`,
-    ...websocketCallbacks
-  });
-
-  // Game action handlers with error handling
-  const handleResign = () => {
+  /****************************
+   * Game Action Handlers
+   ****************************/
+  const handleGameAction = (action) => {
     try {
-      socket.current?.send(JSON.stringify({ action: "resign_game" }));
+      socket.current?.send(JSON.stringify({ action }));
     } catch (error) {
-      console.error("Error resigning game:", error);
+      console.error(`Error with ${action}:`, error);
     }
   };
 
-  const handleAbort = () => {
-    try {
-      socket.current?.send(JSON.stringify({ action: "abort_game" }));
-    } catch (error) {
-      console.error("Error aborting game:", error);
-    }
-  };
+  const handleResign = () => handleGameAction("resign_game");
+  const handleAbort = () => handleGameAction("abort_game");
+  const handleDrawReq = () => handleGameAction("draw_request");
+  const handlePause = () => handleGameAction("pause_request");
 
-  const handleDrawReq = () => {
-    try {
-      socket.current?.send(JSON.stringify({ action: "draw_request" }));
-    } catch (error) {
-      console.error("Error requesting draw:", error);
-    }
-  };
-
-  const handlePause = () => {
-    try {
-      socket.current?.send(JSON.stringify({ action: "pause_request" }));
-    } catch (error) {
-      console.error("Error pausing game:", error);
-    }
-  };
-
+  /****************************
+   * Render Component
+   ****************************/
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
       <div className="p-4 flex justify-evenly h-screen">
+        {/* Game Board Section */}
         <div className="flex h-fit p-2 flex-wrap">
           <div className="flex">
             <GameBoard
@@ -219,6 +233,7 @@ export default function Online() {
             />
           </div>
           
+          {/* Player Info Section */}
           <div className="flex flex-col justify-between ml-4">
             <PlayerInfo 
               player={player1 === user ? player2 : player1}
@@ -235,6 +250,7 @@ export default function Online() {
           </div>
         </div>
 
+        {/* Move History Section */}
         {game && (
           <Move 
             moves={game.history()} 
