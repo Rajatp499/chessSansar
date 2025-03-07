@@ -31,13 +31,44 @@ export const PlayerVsBot = () => {
   const playerColorRef = useRef(DEFAULT_PLAYER_COLOR);
 
   // Responsiveness
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  
+  // Calculate optimal board size based on available viewport dimensions
   const boardWidth = useMemo(() => {
-    // Responsive board size based on screen width
-    if (width < 768) return Math.min(width * 0.9, 350);
-    if (width < 1024) return 450;
-    return 560;
-  }, [width]);
+    // Calculate maximum sizes that will fit in the viewport
+    const maxHeightBasedSize = Math.max(height * 0.55, 280); // Max 55% of viewport height
+    const maxWidthBasedSize = Math.max(width * 0.45, 280);   // Max 45% of viewport width
+    
+    // Choose the smaller of the two to ensure it fits
+    let optimalSize = Math.min(maxHeightBasedSize, maxWidthBasedSize);
+    
+    // Scale down for smaller screens
+    if (width < 768) {
+      optimalSize = Math.min(width * 0.8, height * 0.4);
+    } else if (width < 1024) {
+      optimalSize = Math.min(width * 0.5, height * 0.5);
+    }
+    
+    // Round to nearest integer to avoid rendering issues
+    return Math.floor(optimalSize);
+  }, [width, height]);
+
+  // Calculate max width and height for the move history component
+  const moveHistorySize = useMemo(() => {
+    // For mobile: horizontal layout with fixed height
+    if (width < 768) {
+      return {
+        width: '100%',
+        height: Math.min(height * 0.2, 160) // Smaller height on mobile
+      };
+    }
+    
+    // For desktop: vertical layout with fixed width
+    return {
+      width: Math.min(width * 0.25, 260), // Keep width smaller than chess board
+      height: Math.min(boardWidth * 0.9, height * 0.6) // Proportional to board but not taller than 60% of viewport
+    };
+  }, [width, height, boardWidth]);
 
   // Timer refs
   const timerRefs = {
@@ -211,13 +242,13 @@ export const PlayerVsBot = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${themeStyles.container}`}>
-      <div id="game" className={openSelectAI ? "blur-sm" : ""}>
-        <div className="p-4 flex flex-col md:flex-row items-center md:items-start justify-evenly min-h-screen">
-          {/* Chess board and timers */}
-          <div className="flex flex-col md:flex-row mb-6 md:mb-0">
+    <div className={`h-screen w-screen overflow-hidden transition-colors duration-300 ${themeStyles.container}`}>
+      <div id="game" className={`h-full ${openSelectAI ? "blur-sm" : ""}`}>
+        <div className="h-full w-full p-1 sm:p-2 md:p-4 flex flex-col md:flex-row items-center justify-center">
+          {/* Container for chess board and timers */}
+          <div className="flex flex-col md:flex-row mb-1 md:mb-0 md:mr-4">
             {/* Chess board */}
-            <div className={`rounded-lg p-2 ${themeStyles.card}`}>
+            <div className={`rounded-lg p-1 ${themeStyles.card}`}>
               <Chessboard
                 boardWidth={boardWidth}
                 boardOrientation={playerColor}
@@ -233,11 +264,11 @@ export const PlayerVsBot = () => {
             </div>
 
             {/* Timers */}
-            <div className={`flex flex-row md:flex-col justify-between p-2 mt-4 md:mt-0 md:ml-4 rounded-lg ${themeStyles.card}`}>
+            <div className={`flex flex-row md:flex-col justify-between p-2 mt-1 md:mt-0 md:ml-2 rounded-lg ${themeStyles.card}`}>
               {/* Bot timer */}
-              <div className="p-2 w-full">
+              <div className="p-1 w-full">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Bot level {botLevel}</span>
+                  <span className="font-medium text-sm md:text-base">Bot level {botLevel}</span>
                   {!loading && game.turn() !== playerColor.substring(0, 1) && 
                     <span className={`py-1 px-2 rounded ${themeStyles.highlight} text-white text-xs font-bold`}>
                       TURN
@@ -259,9 +290,9 @@ export const PlayerVsBot = () => {
               </div>
 
               {/* Player timer */}
-              <div className="p-2 w-full">
+              <div className="p-1 w-full">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Player</span>
+                  <span className="font-medium text-sm md:text-base">Player</span>
                   {!loading && game.turn() === playerColor.substring(0, 1) && 
                     <span className={`py-1 px-2 rounded ${themeStyles.highlight} text-white text-xs font-bold`}>
                       TURN
@@ -284,12 +315,21 @@ export const PlayerVsBot = () => {
             </div>
           </div>
 
-          {/* Moves history */}
-          <div className={`w-full md:w-auto ${themeStyles.card} rounded-lg p-4`}>
+          {/* Moves history - with controlled width and height */}
+          <div 
+            className={`${themeStyles.card} rounded-lg overflow-hidden`}
+            style={{ 
+              width: width < 768 ? '100%' : moveHistorySize.width, 
+              height: moveHistorySize.height
+            }}
+          >
             <Move 
               moves={game.history()} 
               onUndo={handleUndo}
-              isDark={isDark} 
+              isDark={isDark}
+              compactHeight={width < 768}
+              compactView={width < 1024} // Always use compact view on smaller screens
+              fixedHeight={true} // Tell Move component to use fixed height mode
             />
           </div>
         </div>
