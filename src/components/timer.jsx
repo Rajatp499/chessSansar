@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTimer } from 'react-timer-hook';
 
-export default function Timer({ expiryTimestamp, onTimeUp, onPause, onResume, onRestart, onStart, onIncrement, highlight }) {
+export default function Timer({ expiryTimestamp, onTimeUp, onPause, onResume, onRestart, onStart, onIncrement, highlight, isDark }) {
   const {
     totalSeconds,
     seconds,
@@ -37,14 +37,14 @@ export default function Timer({ expiryTimestamp, onTimeUp, onPause, onResume, on
 
   return (
       <div className={`h-10 w-28 m-2 border-2 border-black ${highlight ? 'border-red-500' : 'border-black'} flex`}>
-         <div className="w-1/2 bg-darkSquare flex justify-center items-center border-r-2 border-black">
+         <div className={`w-1/2 ${isDark ? 'bg-darkSquare' : 'bg-lightSquare'} flex justify-center items-center border-r-2 border-black`}>
           {hours}
         </div>
-        <div className="w-1/2 bg-lightSquare flex justify-center items-center border-r-2 border-black">    
+        <div className={`w-1/2 ${isDark ? 'bg-lightSquare' : 'bg-darkSquare'} flex justify-center items-center border-r-2 border-black`}>    
               {minutes}
         </div>
 
-        <div className="w-1/2 bg-darkSquare flex justify-center items-center border-l-2 border-black">
+        <div className={`w-1/2 ${isDark ? 'bg-darkSquare' : 'bg-lightSquare'} flex justify-center items-center border-l-2 border-black`}>
           {seconds}
         </div>
      </div>

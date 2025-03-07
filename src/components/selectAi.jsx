@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const SelectAI = ({ open, onClose, onStartGame }) => {
+const SelectAI = ({ open, onClose, onStartGame, isDark }) => {
     const [gameFormat, setGameFormat] = useState('classical');
     const [botLevel, setBotLevel] = useState(1);
     const [playerColor, setPlayerColor] = useState('white');
@@ -29,8 +29,8 @@ const SelectAI = ({ open, onClose, onStartGame }) => {
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg">
+        <div className={`fixed inset-0 flex items-center justify-center ${isDark ? 'bg-black bg-opacity-75' : 'bg-black bg-opacity-50'}`}>
+            <div className={`p-6 rounded-lg shadow-lg ${isDark ? 'bg-gray-800 text-white' : 'bg-white'}`}>
                 <h2 className="text-xl font-bold mb-4">Game Settings</h2>
                 <div className="mb-4">
                     <label className="block mb-2">Game Format</label>
@@ -110,13 +110,13 @@ const SelectAI = ({ open, onClose, onStartGame }) => {
 
                 <div className="flex justify-end space-x-4">
                     <button
-                        className="px-4 py-2 bg-gray-300 rounded"
+                        className={`px-4 py-2 rounded ${isDark ? 'bg-gray-600 text-white' : 'bg-gray-300'}`}
                         onClick={onClose}
                     >
                         Cancel
                     </button>
                     <button
-                        className="px-4 py-2 bg-blue-500 text-white rounded"
+                        className={`px-4 py-2 rounded ${isDark ? 'bg-blue-700 text-white' : 'bg-blue-500 text-white'}`}
                         onClick={handleSubmit}
                     >
                         Start Game
