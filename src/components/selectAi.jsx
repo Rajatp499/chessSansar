@@ -20,6 +20,7 @@ const SelectAI = ({ open, onClose, onStartGame, isDark }) => {
         classical: '30+10',
         rapid: '10+5',
         blitz: '5+5',
+        bullet: '1+0',
     });
 
     // Available time controls for each format
@@ -27,6 +28,7 @@ const SelectAI = ({ open, onClose, onStartGame, isDark }) => {
         classical: ['30+10', '45+20', '60+90'],
         rapid: ['10+5', '15+10', '20+5'],
         blitz: ['3+2', '5+5', '7+5'],
+        bullet: ['1+2', '1+0', '1+5'],
     };
 
     /**
@@ -103,6 +105,7 @@ const SelectAI = ({ open, onClose, onStartGame, isDark }) => {
                         <option value="classical" className={themeStyles.option}>Classical</option>
                         <option value="rapid" className={themeStyles.option}>Rapid</option>
                         <option value="blitz" className={themeStyles.option}>Blitz</option>
+                        <option value="bullet" className={themeStyles.option}>Bullet</option>
                     </select>
                 </div>
 

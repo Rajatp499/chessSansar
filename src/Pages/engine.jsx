@@ -269,10 +269,10 @@ export const PlayerVsBot = () => {
               <div className="p-1 w-full">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-sm md:text-base">Bot level {botLevel}</span>
-                  {!loading && game.turn() !== playerColor.substring(0, 1) && 
+                  {/* {!loading && game.turn() !== playerColor.substring(0, 1) && 
                     <span className={`py-1 px-2 rounded ${themeStyles.highlight} text-white text-xs font-bold`}>
                       TURN
-                    </span>}
+                    </span>} */}
                 </div>
                 {!loading && (
                   <Timer
@@ -293,10 +293,10 @@ export const PlayerVsBot = () => {
               <div className="p-1 w-full">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-sm md:text-base">Player</span>
-                  {!loading && game.turn() === playerColor.substring(0, 1) && 
+                  {/* {!loading && game.turn() === playerColor.substring(0, 1) && 
                     <span className={`py-1 px-2 rounded ${themeStyles.highlight} text-white text-xs font-bold`}>
                       TURN
-                    </span>}
+                    </span>} */}
                 </div>
                 {!loading && (
                   <Timer
