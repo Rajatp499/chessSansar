@@ -36,15 +36,15 @@ export const PlayerVsBot = () => {
   // Calculate optimal board size based on available viewport dimensions
   const boardWidth = useMemo(() => {
     // Calculate maximum sizes that will fit in the viewport
-    const maxHeightBasedSize = Math.max(height * 0.55, 280); // Max 55% of viewport height
-    const maxWidthBasedSize = Math.max(width * 0.45, 280);   // Max 45% of viewport width
+    const maxHeightBasedSize = Math.max(height * 0.85, 280); // Max 55% of viewport height
+    const maxWidthBasedSize = Math.max(width * 0.85, 280);   // Max 45% of viewport width
     
     // Choose the smaller of the two to ensure it fits
     let optimalSize = Math.min(maxHeightBasedSize, maxWidthBasedSize);
     
     // Scale down for smaller screens
     if (width < 768) {
-      optimalSize = Math.min(width * 0.8, height * 0.4);
+      optimalSize = Math.min(width * 0.8, height * 0.45);
     } else if (width < 1024) {
       optimalSize = Math.min(width * 0.5, height * 0.5);
     }
@@ -58,8 +58,8 @@ export const PlayerVsBot = () => {
     // For mobile: horizontal layout with fixed height
     if (width < 768) {
       return {
-        width: '100%',
-        height: Math.min(height * 0.2, 160) // Smaller height on mobile
+        width:  '100%',
+        height: Math.min(height * 0.3, 400) // Smaller height on mobile
       };
     }
     
@@ -319,7 +319,7 @@ export const PlayerVsBot = () => {
           <div 
             className={`${themeStyles.card} rounded-lg overflow-hidden`}
             style={{ 
-              width: width < 768 ? '100%' : moveHistorySize.width, 
+              width: width < 768 ? boardWidth : moveHistorySize.width, 
               height: moveHistorySize.height
             }}
           >
