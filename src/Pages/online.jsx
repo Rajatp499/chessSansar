@@ -1,203 +1,299 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { Chess } from 'chess.js';
+import GameBoard from "../components/online/GameBoard";
+import PlayerInfo from "../components/online/PlayerInfo";
+import GameOverModal from "../components/online/GameOverModal";
+import Move from "../components/move";
+import useWebSocket from "../hooks/useWebSocket";
+import { handleWebSocketMessage } from "../utils/websocketHandlers";
 import pp from "../assets/profile.gif";
-
+import useChessGame from "../hooks/useChessGame";
 
 export default function Online() {
-  const [game, setGame] = useState(new Chess());
-  const [moves, setMoves] = useState([]);
-  
-  const [user, setUser] = useState("start");
-  const [userColor, setUserColor] = useState("");
-  const [player1, setPlayer1] = useState("player 1");
-  const [player2, setPlayer2] = useState("player 2");
+  const isDark = useSelector((state) => state.theme.isDark);
   const { roomid } = useParams();
-  const socket = useRef(null);
-  let userName = "";
 
-  const updateUserState = (p1, p2, p1Col, p2Col) => {
-    if (p1 == userName) {
-      setUserColor(p1Col.substr(0,1));
-      console.log(`user: ${user}`);
-      console.log("userName:",userName)
-      console.log(`User Color: ${p1}: ${p1Col}`);
-    } else {
-      setUserColor(p2Col.substr(0,1));
-      console.log(`user: ${user}`);
-      console.log("userName:",userName)
-      console.log(`User Color: ${p2}: ${p2Col}`);
-    }
-  }
+  /****************************
+   * Game State Management
+   ****************************/
+  const {
+    game,
+    resetGame,
+    gamePosition,
+    lastMove,
+    setLastMove,
+    checkSquare,
+    makeMove,
+    undoMove,
+    getMoves,
+    updatePosition,
+    getGameStatus
+  } = useChessGame();
 
-  const websocketopencallback = () => {
-    console.log("WebSocket connection established");
-    socket.current.send(JSON.stringify({ action: "join_game" }));
-  };
+  /****************************
+   * Player State Management
+   ****************************/
+  const [user, setUser] = useState(null);
+  const [turn, setTurn] = useState(false);  
+  const [userName] = useState(localStorage.getItem("username"));
+  const [player1, setPlayer1] = useState(null);
+  const [player2, setPlayer2] = useState(null);
+  const [userColor, setUserColor] = useState("white");
 
-  const websocketmessagecallback = (event) => {
-    const message = JSON.parse(event.data);
-    const info = message.message.info;
+  /****************************
+   * UI State Management
+   ****************************/
+  const [gameOver, setGameOver] = useState(false);
+  const [gameResult, setGameResult] = useState(null);
+  const [selectedPiece, setSelectedPiece] = useState(null);
+  const [moveSquares, setMoveSquares] = useState({});
+  const [boardWidth, setBoardWidth] = useState(560);
 
-    if (info === "connected") {
-      setUser(message.message.player.user);
-      userName  =  message.message.player.user;
-      console.log(message.message.player.user);
-    }
+  /****************************
+   * Move Handlers
+   ****************************/
+  // Handle square click and highlight valid moves
+  const handleSquareClick = useCallback((square) => {
+    if (!turn) return;
 
-    console.log("Received message:", message);
-
-    // only process messages that are for both players
-    const type = message.message.type;
-    if (type != "both") {
-      return;
-    }
-
-    if (info === "joined") {
-      updateUserState(
-        message.game.player1, message.game.player2, message.game.player1_color, message.game.player2_color
-      )
-      setPlayer1(message.game.player1);
-      setPlayer2(message.game.player2);
-
-      const current_turn = message.game.current_turn;
-      console.log("Turn:", current_turn);
-    }
-
-    if (info === "reconnected") {
-      updateUserState(
-        message.game.player1, message.game.player2, message.game.player1_color, message.game.player2_color
-      )
-      setPlayer1(message.game.player1);
-      setPlayer2(message.game.player2);
-
-      const current_turn = message.game.current_turn;
-      console.log("Turn:", current_turn);
-
-      setGame(new Chess(message.game.fen));
-    }
-
-    if (info === "moved") {
-      const current_turn = message.game.current_turn;
-      console.log("Turn:", current_turn);
-      if (message.message.user !== user) {
-        setGame(new Chess(message.game.fen));
+    // If a piece is selected and the clicked square is a valid move
+    if (selectedPiece && moveSquares[square]) {
+      const moveResult = drop(selectedPiece, square);
+      if (moveResult) {
+        setSelectedPiece(null);
+        setMoveSquares({});
+        return;
       }
     }
 
+    // Show valid moves for selected piece
+    setSelectedPiece(square);
+    const moves = getMoves(square);
+    const newMoveSquares = {};
+    moves.forEach((move) => {
+      newMoveSquares[move.to] = {
+        background: isDark ? 'rgba(255, 255, 0, 0.4)' : 'rgba(255, 255, 0, 0.2)',
+      };
+    });
+    setMoveSquares(newMoveSquares);
+  }, [turn, selectedPiece, moveSquares, getMoves, isDark]);
+
+  // Handle piece movement
+  const drop = useCallback((sourceSquare, targetSquare) => {
+    if (!turn) return false;
+    
+    const moveSuccess = makeMove(sourceSquare, targetSquare);
+    if (moveSuccess) {
+      socket.current.send(JSON.stringify({
+        action: "make_move",
+        move: sourceSquare + targetSquare
+      }));
+      return true;
+    }
+    return false;
+  }, [turn, makeMove]);
+
+  /****************************
+   * Move History Navigation
+   ****************************/
+  const handleGoToMove = useCallback((moveIndex) => {
+    if (!game) return;
+    
+    try {
+      const tempGame = new Chess();
+      const moves = game.history({ verbose: true }).slice(0, moveIndex + 1);
+      
+      moves.forEach(move => {
+        tempGame.move({
+          from: move.from,
+          to: move.to,
+          promotion: move.promotion
+        });
+      });
+      
+      updatePosition(tempGame.fen());
+    } catch (error) {
+      console.error('Error navigating to move:', error);
+    }
+  }, [game, updatePosition]);
+
+  /****************************
+   * WebSocket Configuration
+   ****************************/
+  const websocketCallbacks = {
+    onMessage: (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log("WS message received: ", message);
+
+        // // Handle game over states
+        // if (message.message.info === 'resigned') {
+        //   setGameOver(true);
+        //   setGameResult({
+        //     status: message.game.status,
+        //     winner: message.game.winner,
+        //     color: message.game.color,
+        //     over_type: message.game.over_type
+        //   });
+        //   return;
+        // }
+
+        // handle other messages
+        handleWebSocketMessage(
+          message,
+          resetGame,
+          makeMove,
+          undoMove,
+          setTurn,
+          userName,
+          setUser,
+          setPlayer1,
+          setPlayer2,
+          setUserColor,
+          setGameOver,
+          setGameResult
+        );
+      } catch (error) {
+        console.error("Error handling websocket message:", error);
+      }
+    },
+    onOpen: () => {
+      console.log("WebSocket connection established");
+      socket.current?.send(JSON.stringify({ action: "join_game" }));
+    },
+    onClose: (event) => console.log("WebSocket connection closed:", event.reason),
+    onError: (error) => console.error("WebSocket error:", error)
   };
 
-  const websocketclosecallback = () => {
-    console.log("WebSocket connection closed");
-  };
+  const socket = useWebSocket({
+    url: `${import.meta.env.VITE_BACKEND_CHESS_WS_API}/chess/${roomid}/?token=${localStorage.getItem("token")}`,
+    ...websocketCallbacks
+  });
 
-  const websocketerrorcallback = () => {
-    console.error("WebSocket error:", error);
-  };
-
+  /****************************
+   * Window Event Handlers
+   ****************************/
+  // Handle window resize
   useEffect(() => {
+    const handleResize = () => {
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const maxWidth = Math.min(screenWidth * 0.5, screenHeight * 0.8);
+      setBoardWidth(maxWidth);
+    };
 
-    const BACKEND_WS_API = import.meta.env.VITE_BACKEND_CHESS_WS_API;
-    socket.current = new WebSocket(BACKEND_WS_API + "/chess/" + roomid + "/?token=" + localStorage.getItem("token"));
-
-    socket.current.onopen = websocketopencallback;
-    socket.current.onmessage = websocketmessagecallback;
-    socket.current.onclose = websocketclosecallback;
-    socket.current.onerror = websocketerrorcallback;
-
-    console.log("useffect Socket:", socket);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Handle page refresh/unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      localStorage.setItem('gameRoom', roomid);
+    };
 
+    const handleLoad = () => {
+      if (socket.current?.readyState === WebSocket.OPEN) {
+        socket.current.send(JSON.stringify({ action: "join_game" }));
+      }
+    };
 
-  const drop = (sourceSquare, targetSquare) => {
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('load', handleLoad);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('load', handleLoad);
+    };
+  }, [roomid]);
+
+  /****************************
+   * Game Action Handlers
+   ****************************/
+  const handleGameAction = (action) => {
     try {
-      console.log("Game turn: ", game.turn());
-      console.log("user color: ", userColor);
-      if (game.turn() !== userColor) 
-        return;
-      
-      const move = game.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: "q",
-      });
-  
-      if (move === null) return;
-  
-      setGame(new Chess(game.fen()));
-      const uci_move = `${move.from}${move.to}${move.promotion ? move.promotion : ""}`;
-      socket.current.send(JSON.stringify({ action: "make_move", "move": uci_move }));
+      socket.current?.send(JSON.stringify({ action }));
     } catch (error) {
-      console.error("Error:", error);
+      console.error(`Error with ${action}:`, error);
     }
   };
 
+  const handleResign = () => handleGameAction("resign_game");
+  const handleAbort = () => handleGameAction("abort_game");
+  const handleDrawReq = () => handleGameAction("draw_request");
+  const handlePause = () => handleGameAction("pause_request");
 
-  // console.log("timer:",timer)
+  useEffect(() => {
+    console.log("game over: ", gameOver);
+    console.log("game over result: ", gameResult);
+  }, [gameOver, gameResult]);
+
+  /****************************
+   * Render Component
+   ****************************/
   return (
-    <>
-      <div className="p-4 flex justify-evenly h-screen">
-        <div className="flex h-fit p-2">
-          {userColor}
-          <Chessboard
-            boardOrientation={userColor === 'b' ? 'black': 'white'}
-            style={{ filter: "blur(10px)" }}
-            // id="standard"
-            boardWidth={560}
-            position={game.fen()}
-            onPieceDrop={drop}
-            customBoardStyle={{
-              borderRadius: "5px",
-              boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`,
-
-            }}
-          />
-          <div className="flex flex-col justify-between">
-            <div className="p-2">
-              <div className="flex">
-                <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
-                <span className="pl-4">{player1 == user ? player2: player1}</span>
-              </div>
-            </div>
-
-            <div className="p-2">
-            <div className="flex">
-              <img src={pp} alt="User" className="w-10 h-10 rounded-full" />
-              <span className="bg-red-500 pl-2">{user}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="h-[92%] border-black border-2 w-1/3 p-2">
-          <h1 className="text-center text-2xl font-bold underline mb-4">
-            Moves
-          </h1>
-          <div className="h-[80%] scrollbar-hidden overflow-y-scroll">
-            {moves.map((move, index) => {
-              // Only process every two moves together (one for White, one for Black)
-              if (index % 2 === 0) {
-                return (
-                  <div
-                    key={index}
-                    className="text-center border-black border-b-2 p-2 w-1/2 m-auto flex justify-between"
-                  >
-                    <span>{index / 2 + 1}. {moves[index]}</span>
-                    <span>{moves[index + 1] || ""}</span>
-                  </div>
-                );
-              }
-              return null; // Skip odd indexes since they're handled with the previous one
-            })}
-
-          </div>
-          <div>
-          </div>
-        </div>
-      </div>
-
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}`}>
       
-    </>
+      {/* GameOverModal */}
+      {gameOver && gameResult && (
+        <GameOverModal result={gameResult} isDark={isDark} />
+      )}
+
+      <div className="p-4 flex justify-evenly h-screen">
+        {/* Game Board Section */}
+        <div className="flex h-fit p-2 flex-wrap">
+          <div className="flex">
+            <GameBoard
+              userColor={userColor}
+              boardWidth={boardWidth}
+              gamePosition={gamePosition}
+              isDark={isDark}
+              drop={!gameOver ? drop : () => false}
+              handleSquareClick={!gameOver ? handleSquareClick : () => false}
+              getMoveOptions={!gameOver ? handleSquareClick : () => false}
+              moveSquares={moveSquares}
+              checkSquare={checkSquare}
+              lastMove={lastMove}
+              selectedPiece={selectedPiece}
+              setSelectedPiece={setSelectedPiece}
+              setMoveSquares={setMoveSquares}
+              gameOver={gameOver}
+            />
+          </div>
+          
+          {/* Player Info Section */}
+          <div className="flex flex-col justify-between ml-4">
+            <PlayerInfo 
+              player={player1 === user ? player2 : player1}
+              isCurrentTurn={!turn}
+              isDark={isDark}
+              image={pp}
+            />
+            <PlayerInfo 
+              player={user}
+              isCurrentTurn={turn}
+              isDark={isDark}
+              image={pp}
+            />
+          </div>
+        </div>
+
+        {/* Move History Section */}
+        {game && (
+          <Move 
+            moves={game.history()}
+            onAbort={handleAbort} 
+            onResign={!gameOver ? handleResign : undefined} 
+            onDrawReq={!gameOver ? handleDrawReq : undefined} 
+            onGoToMove={handleGoToMove}
+            isDark={isDark}
+            onPause={!gameOver ? handlePause : undefined}
+          />
+        )}
+      </div>
+    </div>
   );
 }

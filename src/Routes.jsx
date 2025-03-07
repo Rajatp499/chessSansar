@@ -7,7 +7,7 @@ import Online from "./Pages/online";
 import Signup from "./Pages/signUp";
 import Login from "./Pages/logIn";
 import Activate from "./Pages/activate";
-import Createorjoin from "./Pages/createorjoin";
+import CreateOrJoin from "./Pages/createorjoin";
 import JoinPage from "./Pages/join";
 import Create from "./Pages/create";
 
@@ -22,7 +22,7 @@ function Approuter() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/activate/:uid/:token" element={<Activate />} />
-        <Route path="/connect" element={<Createorjoin />} />
+        <Route path="/connect" element={<CreateOrJoin />} />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/create/:roomid" element={<Create />} />
       </Routes>
