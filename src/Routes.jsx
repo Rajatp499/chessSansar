@@ -13,7 +13,7 @@ import Create from "./Pages/create";
 
 function Approuter() {
   return (
-    <Router basename="/chess-sansar">
+    <Router>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/engine" element={<Engine />} />
