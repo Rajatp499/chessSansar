@@ -2,6 +2,9 @@
 
 ChessSansar is a web-based chess application built with React and Vite. It allows users to play chess against a Bot, solve chess puzzles, and play online with other users. The project leverages various modern tools and libraries to provide a seamless and interactive chess experience.
 
+### Multiplayer Demo
+![Multiplayer Demo](./public/assets/multiplayer-demo.gif)
+
 ## Features
 
 - **Play against Bot**: Challenge the AI with adjustable difficulty levels powered by Stockfish
@@ -39,7 +42,8 @@ ChessSansar is a web-based chess application built with React and Vite. It allow
 chessSansar/
 ├── public/
 │   ├── assets/
-│   │   └── logo.png
+│   │   ├── logo.png
+│   │   └── multiplayer-demo.gif   # Demo GIF for README
 │   └── stockfish.js          # Chess engine for AI moves
 ├── src/
 │   ├── assets/               # Static assets and images
