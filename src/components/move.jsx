@@ -164,7 +164,7 @@ export default function Move({
   );
 
   return (
-    <div className={`h-[400px] md:h-[500px] w-full md:w-80 lg:w-96 p-2 border-2 rounded-lg shadow-md ${themeClasses.container}`}>
+    <div className={`h-[200px] md:h-[500px] w-full md:w-80 lg:w-96 p-2 border-2 rounded-lg shadow-md ${themeClasses.container}`}>
       {/* Header */}
       <h1 className={`text-center text-xl font-bold py-2 mb-2 rounded-t-lg ${themeClasses.header}`}>
         Move History
