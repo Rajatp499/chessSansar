@@ -3,7 +3,7 @@ import React from "react";
 import Home from "./Pages/home";
 import Engine from "./Pages/engine";
 import Puzzle from "./Pages/puzzle";
-import Online from "./Pages/online"
+import Online from "./Pages/online";
 import Signup from "./Pages/signUp";
 import Login from "./Pages/logIn";
 import Activate from "./Pages/activate";
