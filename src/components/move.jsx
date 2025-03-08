@@ -53,11 +53,11 @@ export default function Move({
   const renderMobileView = () => (
     <div 
       ref={moveListRef}
-      className={`flex overflow-x-auto py-1 px-1 scrollbar-thin ${themeClasses.scrollThumb} whitespace-nowrap`}
-      style={{ maxWidth: '100%', msOverflowStyle: 'none', scrollbarWidth: 'thin' }}
+      className={`flex overflow-x-auto py-2 px-2 scrollbar-thin ${themeClasses.scrollThumb} whitespace-nowrap`}
+      style={{ maxWidth: '100%', msOverflowStyle: 'none', scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
     >
       {moves.length === 0 ? (
-        <div className="flex items-center justify-center w-full text-gray-500">
+        <div className="flex items-center justify-center w-full text-gray-500 py-2">
           No moves yet
         </div>
       ) : (
@@ -67,19 +67,19 @@ export default function Move({
           const blackMove = moves[i * 2 + 1];
           
           return (
-            <div key={i} className="inline-flex items-center mr-2 flex-shrink-0">
+            <div key={i} className="inline-flex items-center mr-3 flex-shrink-0">
               <span className={`px-1 text-xs rounded min-w-[24px] text-center ${themeClasses.moveNumber}`}>
                 {moveNumber}.
               </span>
               <span 
-                className={`px-1 mx-1 rounded cursor-pointer text-sm ${themeClasses.moveItem}`}
+                className={`px-2 mx-1 py-1 rounded cursor-pointer text-sm ${themeClasses.moveItem}`}
                 onClick={() => onGoToMove && onGoToMove(i * 2)}
               >
                 {whiteMove}
               </span>
               {blackMove && (
                 <span 
-                  className={`px-1 mx-1 rounded cursor-pointer text-sm ${themeClasses.moveItem}`}
+                  className={`px-2 mx-1 py-1 rounded cursor-pointer text-sm ${themeClasses.moveItem}`}
                   onClick={() => onGoToMove && onGoToMove(i * 2 + 1)}
                 >
                   {blackMove}
@@ -186,7 +186,7 @@ export default function Move({
     : 'h-[200px] md:h-[400px] w-full md:w-72 lg:w-80';
   
   // Adjust move list height based on props
-  const moveListHeight = compactHeight ? 'h-[60px]' : 'h-[calc(100%-140px)]';
+  const moveListHeight = compactHeight ? 'max-h-[70px] sm:max-h-[120px]' : 'h-[calc(100%-140px)]';
 
   return (
     <div className={`${containerClass} p-1 border rounded-lg shadow-md ${themeClasses.container} overflow-hidden`}>
@@ -217,7 +217,7 @@ export default function Move({
         <div className="flex flex-wrap gap-1">
           {onUndo && (
             <button
-              className={`font-medium py-1 px-2 text-sm rounded flex-1 text-white ${themeClasses.buttonPrimary}`}
+              className={`font-medium py-2 px-3 text-sm rounded flex-1 text-white ${themeClasses.buttonPrimary}`}
               onClick={onUndo}
             >
               Undo
@@ -225,7 +225,7 @@ export default function Move({
           )}
           {onRedo && (
             <button
-              className={`font-medium py-1 px-2 text-sm rounded flex-1 text-white ${themeClasses.buttonPrimary}`}
+              className={`font-medium py-2 px-3 text-sm rounded flex-1 text-white ${themeClasses.buttonPrimary}`}
               onClick={onRedo}
             >
               Redo
@@ -233,7 +233,7 @@ export default function Move({
           )}
           {onPause && (
             <button
-              className={`font-medium py-1 px-2 text-sm rounded flex-1 text-white ${themeClasses.buttonPrimary}`}
+              className={`font-medium py-2 px-3 text-sm rounded flex-1 text-white ${themeClasses.buttonPrimary}`}
               onClick={onPause}
             >
               Pause
@@ -243,11 +243,11 @@ export default function Move({
 
         {/* Game control buttons */}
         {moves.length > 0 && (
-          <div className="flex gap-1 mt-1">
+          <div className="flex gap-1 mt-2">
             {onResign && (
               <button
                 onClick={onResign}
-                className={`font-medium py-1 px-2 text-sm rounded flex-1 text-white ${themeClasses.buttonDanger}`}
+                className={`font-medium py-2 px-3 text-sm rounded flex-1 text-white ${themeClasses.buttonDanger}`}
               >
                 Resign
               </button>
@@ -255,7 +255,7 @@ export default function Move({
             {onDrawReq && (
               <button
                 onClick={onDrawReq}
-                className={`font-medium py-1 px-2 text-sm rounded flex-1 text-white ${themeClasses.buttonPrimary}`}
+                className={`font-medium py-2 px-3 text-sm rounded flex-1 text-white ${themeClasses.buttonPrimary}`}
               >
                 Draw
               </button>
@@ -263,7 +263,7 @@ export default function Move({
             {onAbort && (
               <button
                 onClick={onAbort}
-                className={`font-medium py-1 px-2 text-sm rounded flex-1 text-white ${themeClasses.buttonNeutral}`}
+                className={`font-medium py-2 px-3 text-sm rounded flex-1 text-white ${themeClasses.buttonNeutral}`}
               >
                 Abort
               </button>
