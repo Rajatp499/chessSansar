@@ -131,7 +131,7 @@ Visit [ChessSansar](https://chess-sansar.vercel.app)
 
 ## Contributors
 
-- [Nishan](https://github.com/nishan)
+- [Nishan](https://github.com/NishanBhattarai327)
 - [Rajat](https://github.com/Rajatp499)
 - [Yamraj](https://github.com/yamrajkhadka)
 - [Prasanga](https://github.com/prasanga73)
